@@ -1,0 +1,363 @@
+import os
+import re
+
+from sqlmodel import Session, select
+
+from .db import engine
+from .models import Exercise, Habit, Routine, RoutineExercise
+
+# Marcador: una vez sembrados los ejemplos personales (habitos/comidas), no se
+# vuelven a crear aunque el usuario los borre. Asi sus cambios persisten.
+SEED_MARKER = os.path.join(os.path.dirname(__file__), "..", ".seeded")
+
+
+def mark_seeded():
+    try:
+        open(SEED_MARKER, "a").close()
+    except OSError:
+        pass
+
+# Detecta el material por el NOMBRE del ejercicio (mas fiable que el campo
+# de wger, que mete muchos press de mancuerna bajo "barra"). Orden = prioridad.
+EQUIPMENT_KEYWORDS = [
+    ("mancuernas", r"mancuerna|dumbbell|\bdb\b|kettlebell|pesa rusa|goblet"),
+    ("polea", r"polea|cable|cruce|cross-?over|jal[oó]n|pull-?down|pulldown|face pull|trx"),
+    ("maquina", r"m[aá]quina|machine|smith|prensa|leg press|hack|pec\s?deck|peck deck|pec-deck"),
+    ("barra", r"\bbarra\b|barbell|\bez\b|\bsz\b|landmine"),
+    ("peso corporal", r"peso corporal|bodyweight|flexion|flexión|dominada|fondo|plancha|"
+                      r"pull-?up|push-?up|chin-?up|\bdip\b|calistenia|muscle-?up|"
+                      r"l-sit|sit-?up|crunch|burpee"),
+]
+
+
+def infer_equipment(name: str, fallback: str) -> str:
+    low = name.lower()
+    for equip, pattern in EQUIPMENT_KEYWORDS:
+        if re.search(pattern, low):
+            return equip
+    return fallback
+
+EXAMPLES = [
+    dict(name="Agua", category="water", schedule_type="daily_times",
+         schedule=["09:00", "11:00", "13:00", "15:00", "17:00", "19:00", "21:00"]),
+    dict(name="Medicina", category="medicine", schedule_type="daily_times",
+         schedule=["09:00"]),
+    dict(name="Ejercicio", category="exercise", schedule_type="daily_times",
+         schedule=["18:00"]),
+    dict(name="Rutina de dormir", category="sleep", schedule_type="daily_times",
+         schedule=["22:30"]),
+    dict(name="Rutina de despertar", category="sleep", schedule_type="daily_times",
+         schedule=["07:30"]),
+    dict(name="Sacar la basura", category="chore", schedule_type="interval_days",
+         schedule=3),
+    dict(name="Limpiar el baño", category="chore", schedule_type="interval_days",
+         schedule=7),
+]
+
+
+DIET_EXAMPLES = [
+    dict(name="Desayuno", category="diet", schedule_type="daily_times",
+         schedule=["08:00"]),
+    dict(name="Comida", category="diet", schedule_type="daily_times",
+         schedule=["13:30"]),
+    dict(name="Cena", category="diet", schedule_type="daily_times",
+         schedule=["21:00"]),
+]
+
+
+def run():
+    # si ya se sembro una vez, respetar lo que tenga el usuario (aunque borre todo)
+    if os.path.exists(SEED_MARKER):
+        return
+    with Session(engine) as session:
+        if session.exec(select(Habit)).first():
+            return
+        for data in EXAMPLES:
+            session.add(Habit(**data))
+        session.commit()
+
+
+def add_diet_habits():
+    if os.path.exists(SEED_MARKER):
+        return
+    with Session(engine) as session:
+        if session.exec(select(Habit).where(Habit.category == "diet")).first():
+            return
+        for data in DIET_EXAMPLES:
+            session.add(Habit(**data))
+        session.commit()
+
+
+# Catalogo base de ejercicios del modulo Gym (name, muscle, equipment)
+EXERCISES = [
+    # Pecho
+    ("Press banca", "Pecho", "barra"),
+    ("Press banca inclinado", "Pecho", "barra"),
+    ("Press con mancuernas", "Pecho", "mancuernas"),
+    ("Press inclinado con mancuernas", "Pecho", "mancuernas"),
+    ("Aperturas con mancuernas", "Pecho", "mancuernas"),
+    ("Cruces en polea", "Pecho", "polea"),
+    ("Press en maquina", "Pecho", "maquina"),
+    ("Fondos en paralelas", "Pecho", "peso corporal"),
+    ("Flexiones", "Pecho", "peso corporal"),
+    # Espalda
+    ("Dominadas", "Espalda", "peso corporal"),
+    ("Jalon al pecho", "Espalda", "polea"),
+    ("Remo con barra", "Espalda", "barra"),
+    ("Remo con mancuerna", "Espalda", "mancuernas"),
+    ("Remo en polea baja", "Espalda", "polea"),
+    ("Remo en maquina", "Espalda", "maquina"),
+    ("Peso muerto", "Espalda", "barra"),
+    ("Pullover en polea", "Espalda", "polea"),
+    ("Encogimientos (trapecio)", "Espalda", "mancuernas"),
+    # Hombros
+    ("Press militar", "Hombros", "barra"),
+    ("Press de hombro con mancuernas", "Hombros", "mancuernas"),
+    ("Elevaciones laterales", "Hombros", "mancuernas"),
+    ("Elevaciones frontales", "Hombros", "mancuernas"),
+    ("Pajaros (deltoide posterior)", "Hombros", "mancuernas"),
+    ("Face pull", "Hombros", "polea"),
+    # Biceps
+    ("Curl con barra", "Biceps", "barra"),
+    ("Curl con mancuernas", "Biceps", "mancuernas"),
+    ("Curl martillo", "Biceps", "mancuernas"),
+    ("Curl en polea", "Biceps", "polea"),
+    ("Curl predicador", "Biceps", "maquina"),
+    # Triceps
+    ("Press frances", "Triceps", "barra"),
+    ("Extension de triceps en polea", "Triceps", "polea"),
+    ("Extension sobre la cabeza", "Triceps", "mancuernas"),
+    ("Fondos entre bancos", "Triceps", "peso corporal"),
+    # Pierna
+    ("Sentadilla", "Pierna", "barra"),
+    ("Prensa de pierna", "Pierna", "maquina"),
+    ("Zancadas", "Pierna", "mancuernas"),
+    ("Peso muerto rumano", "Pierna", "barra"),
+    ("Extension de cuadriceps", "Pierna", "maquina"),
+    ("Curl femoral", "Pierna", "maquina"),
+    ("Hip thrust", "Pierna", "barra"),
+    ("Elevacion de gemelos", "Pierna", "maquina"),
+    ("Sentadilla bulgara", "Pierna", "mancuernas"),
+    # Core
+    ("Plancha", "Core", "peso corporal"),
+    ("Crunch abdominal", "Core", "peso corporal"),
+    ("Elevaciones de piernas", "Core", "peso corporal"),
+    ("Rueda abdominal", "Core", "peso corporal"),
+    ("Russian twist", "Core", "peso corporal"),
+    # Rutina de verano (nombres en ingles)
+    ("Cable Lateral Raise", "Hombros", "polea"),
+    ("Smith Machine Shoulder Press", "Hombros", "maquina"),
+    ("Smith Machine Incline Press", "Pecho", "maquina"),
+    ("Machine Chest Press", "Pecho", "maquina"),
+    ("Machine Pec Fly", "Pecho", "maquina"),
+    ("Cable Hammer Curl", "Biceps", "polea"),
+    ("Machine Biceps Curl", "Biceps", "maquina"),
+    ("Leg Extension", "Pierna", "maquina"),
+    ("Seated Cable Row", "Espalda", "polea"),
+    ("Machine Lat Pulldown", "Espalda", "maquina"),
+    ("Machine Front Delt Raise", "Hombros", "maquina"),
+    ("Machine Leg Curl", "Pierna", "maquina"),
+    ("Calf Raise on Leg Press", "Pierna", "maquina"),
+]
+
+
+def add_gym_exercises():
+    """Siembra el catalogo base + el de wger (~900) y reconcilia el material
+    de los ejercicios no-custom (la clasificacion de wger es imprecisa, asi
+    que se infiere del nombre). Idempotente."""
+    from .exercises_catalog import WGER_EXERCISES
+
+    catalog = EXERCISES + WGER_EXERCISES
+    with Session(engine) as session:
+        by_name = {e.name.strip().lower(): e for e in session.exec(select(Exercise)).all()}
+        changed = False
+
+        for name, muscle, equipment in catalog:
+            key = name.strip().lower()
+            equip = infer_equipment(name, equipment)
+            existing = by_name.get(key)
+            if existing is None:
+                session.add(Exercise(name=name, muscle=muscle, equipment=equip))
+                by_name[key] = True  # marca dentro del lote para no duplicar
+                changed = True
+            elif existing is not True and not existing.custom and existing.equipment != equip:
+                existing.equipment = equip  # corrige el material (no toca los custom)
+                session.add(existing)
+                changed = True
+
+        if changed:
+            session.commit()
+
+
+# Split real de Daniel (5 dias). El orden importa: el primero es el principal.
+# weekday: lunes=0 ... domingo=6
+REAL_ROUTINES = [
+    ("Hombro y gemelo", 1, [  # Martes
+        "Press militar", "Press de hombro con mancuernas", "Elevaciones laterales",
+        "Face pull", "Pajaros (deltoide posterior)",
+        "Elevacion de gemelos", "Calf Raise on Leg Press",
+    ]),
+    ("Pecho", 2, [  # Miercoles
+        "Press banca", "Press inclinado con mancuernas", "Aperturas con mancuernas",
+        "Cruces en polea", "Fondos en paralelas",
+    ]),
+    ("Hombro e isquios", 3, [  # Jueves
+        "Press de hombro con mancuernas", "Elevaciones laterales", "Face pull",
+        "Peso muerto rumano", "Curl femoral",
+    ]),
+    ("Espalda y cuadriceps", 4, [  # Viernes
+        "Dominadas", "Jalon al pecho", "Remo con barra", "Sentadilla",
+        "Prensa de pierna", "Extension de cuadriceps",
+    ]),
+    ("Brazo", 6, [  # Domingo
+        "Curl con barra", "Curl martillo", "Curl predicador",
+        "Press frances", "Extension de triceps en polea",
+    ]),
+]
+
+# weekday -> nombre de rutina (normal)
+ROUTINE_BY_WEEKDAY = {wd: name for name, wd, _ in REAL_ROUTINES}
+
+# Rutina de verano: solo Martes (Front) y Viernes (Back), 1 serie de todo.
+SUMMER_ROUTINES = [
+    ("Front Day", 1, [  # Martes
+        "Cable Lateral Raise", "Smith Machine Shoulder Press", "Smith Machine Incline Press",
+        "Machine Chest Press", "Machine Pec Fly", "Cable Hammer Curl", "Machine Biceps Curl",
+        "Leg Extension",
+    ]),
+    ("Back Day", 4, [  # Viernes
+        "Seated Cable Row", "Machine Lat Pulldown", "Machine Front Delt Raise",
+        "Machine Leg Curl", "Calf Raise on Leg Press",
+    ]),
+]
+SUMMER_BY_WEEKDAY = {wd: name for name, wd, _ in SUMMER_ROUTINES}
+SUMMER_NAMES = {name for name, _, _ in SUMMER_ROUTINES}
+
+# Modo de rutina activo (normal | summer), persistido en un archivo.
+ROUTINE_MODE_FILE = os.path.join(os.path.dirname(__file__), "..", "routine_mode.txt")
+
+
+def get_routine_mode() -> str:
+    try:
+        mode = open(ROUTINE_MODE_FILE, encoding="utf-8").read().strip()
+        return "summer" if mode == "summer" else "normal"
+    except OSError:
+        return "normal"
+
+
+def set_routine_mode(mode: str) -> str:
+    mode = "summer" if mode == "summer" else "normal"
+    with open(ROUTINE_MODE_FILE, "w", encoding="utf-8") as f:
+        f.write(mode)
+    return mode
+
+
+def routine_by_weekday() -> dict:
+    """Mapeo weekday -> nombre de rutina segun el modo activo."""
+    return SUMMER_BY_WEEKDAY if get_routine_mode() == "summer" else ROUTINE_BY_WEEKDAY
+
+
+def add_summer_routines():
+    """Crea las rutinas de verano si faltan (por nombre; NO gated por el marcador,
+    para que aparezcan tambien en instalaciones ya sembradas). 1 serie de todo."""
+    with Session(engine) as session:
+        existing = {r.name for r in session.exec(select(Routine)).all()}
+        by_ex_name = {e.name.strip().lower(): e for e in session.exec(select(Exercise)).all()}
+        for name, _weekday, exercise_names in SUMMER_ROUTINES:
+            if name in existing:
+                continue
+            routine = Routine(name=name)
+            session.add(routine)
+            session.commit()
+            session.refresh(routine)
+            pos = 0
+            for ex_name in exercise_names:
+                ex = by_ex_name.get(ex_name.strip().lower())
+                if ex is None:
+                    continue
+                session.add(RoutineExercise(
+                    routine_id=routine.id, exercise_id=ex.id, position=pos,
+                    sets=1, reps_min=6, reps_max=8,
+                ))
+                pos += 1
+            session.commit()
+
+
+def add_real_routines():
+    """Crea las 5 rutinas reales de Daniel una sola vez. Tras el marcador, no
+    se recrean si las borra/edita. Daniel hace 2 series de todo."""
+    if os.path.exists(SEED_MARKER):
+        return
+    real_names = {name for name, _, _ in REAL_ROUTINES}
+    with Session(engine) as session:
+        routines = session.exec(select(Routine)).all()
+        existing_names = {r.name for r in routines}
+        by_ex_name = {e.name.strip().lower(): e for e in session.exec(select(Exercise)).all()}
+
+        # migracion 4 -> 2 series en las rutinas reales ya creadas
+        real_ids = [r.id for r in routines if r.name in real_names]
+        if real_ids:
+            for re_ in session.exec(
+                select(RoutineExercise).where(RoutineExercise.routine_id.in_(real_ids))
+            ).all():
+                if re_.sets == 4:
+                    re_.sets = 2
+                    session.add(re_)
+            session.commit()
+
+        for name, _weekday, exercise_names in REAL_ROUTINES:
+            if name in existing_names:
+                continue
+            routine = Routine(name=name)
+            session.add(routine)
+            session.commit()
+            session.refresh(routine)
+            pos = 0
+            for ex_name in exercise_names:
+                ex = by_ex_name.get(ex_name.strip().lower())
+                if ex is None:
+                    continue
+                session.add(RoutineExercise(
+                    routine_id=routine.id, exercise_id=ex.id, position=pos,
+                    sets=2, reps_min=6, reps_max=8,
+                ))
+                pos += 1
+            session.commit()
+
+
+def migrate_hombro_gemelo():
+    """Añade Face pull y Calf Raise on Leg Press a Hombro y gemelo y reordena.
+    Idempotente: no hace nada si ya están los dos ejercicios."""
+    DESIRED = [
+        "Press militar", "Press de hombro con mancuernas", "Elevaciones laterales",
+        "Face pull", "Pajaros (deltoide posterior)",
+        "Elevacion de gemelos", "Calf Raise on Leg Press",
+    ]
+    with Session(engine) as session:
+        routine = session.exec(select(Routine).where(Routine.name == "Hombro y gemelo")).first()
+        if not routine:
+            return
+        by_ex_name = {e.name.strip().lower(): e for e in session.exec(select(Exercise)).all()}
+        existing_res = {re_.exercise_id: re_ for re_ in session.exec(
+            select(RoutineExercise).where(RoutineExercise.routine_id == routine.id)
+        ).all()}
+        # si ya tiene los ejercicios nuevos, no tocar
+        face_pull = by_ex_name.get("face pull")
+        calf_raise = by_ex_name.get("calf raise on leg press")
+        if (face_pull and face_pull.id in existing_res and
+                calf_raise and calf_raise.id in existing_res):
+            return
+        for pos, ex_name in enumerate(DESIRED):
+            ex = by_ex_name.get(ex_name.strip().lower())
+            if not ex:
+                continue
+            if ex.id in existing_res:
+                re_ = existing_res[ex.id]
+                re_.position = pos
+                session.add(re_)
+            else:
+                session.add(RoutineExercise(
+                    routine_id=routine.id, exercise_id=ex.id, position=pos,
+                    sets=2, reps_min=6, reps_max=8,
+                ))
+        session.commit()

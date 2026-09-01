@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+apscheduler
+requests
+google-auth
+google-auth-oauthlib
+caldav
+python-multipart
+pywebpush

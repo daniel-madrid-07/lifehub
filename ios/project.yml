@@ -1,0 +1,87 @@
+# XcodeGen — genera LifeHub.xcodeproj con `xcodegen generate` (en Mac)
+name: LifeHub
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "17.0"
+packages: {}
+schemes:
+  LifeHub:
+    build:
+      targets:
+        LifeHub: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+targets:
+  LifeHub:
+    type: application
+    platform: iOS
+    sources:
+      - LifeHub
+    assets: LifeHub/Assets.xcassets
+    entitlements:
+      path: LifeHub/LifeHub.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+    dependencies:
+      - target: LifeHubWidgets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.lifehub
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+    info:
+      path: LifeHub/Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: Life Hub
+        NSAppTransportSecurity:
+          # El backend corre por HTTP plano (VPS :8011)
+          NSAllowsArbitraryLoads: true
+        NSPhotoLibraryUsageDescription: Para subir fotos de progreso al Gym.
+        NSHealthShareUsageDescription: Para analizar tu sueño y constantes y recomendarte la hora de dormir.
+        UIUserInterfaceStyle: Dark
+        LSApplicationQueriesSchemes:
+          - whatsapp
+          - comgooglemaps
+          - googlegmail
+        UIAppFonts:
+          - Fraunces-Regular.ttf
+          - Fraunces-SemiBold.ttf
+          - Fraunces-Bold.ttf
+          - DMSans-Regular.ttf
+          - DMSans-Medium.ttf
+          - DMSans-SemiBold.ttf
+          - DMSans-Bold.ttf
+
+  LifeHubWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - LifeHubWidgets
+      - LifeHub/Core/APIClient.swift
+      - LifeHub/Core/Endpoints.swift
+      - LifeHub/Core/Models.swift
+      - LifeHub/Core/Theme.swift
+      - LifeHub/Core/Me.swift
+      - LifeHub/Core/Season.swift
+      - LifeHub/Core/Components.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.lifehub.widgets
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: LifeHubWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Life Hub
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension

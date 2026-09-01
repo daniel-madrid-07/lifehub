@@ -1,0 +1,45 @@
+# Secretos y credenciales — nunca commitear
+.env
+.env.local
+*.pem
+*.p12
+*.mobileprovision
+token.json
+token_meta.json
+vapid_private.pem
+vapid_keys.tmp
+Config.local.swift
+Secrets.xcconfig
+
+# Base de datos y datos de usuario
+*.db
+*.sqlite
+*.sqlite3
+photos/
+studies_cache.json
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Herramientas
+.playwright-mcp/

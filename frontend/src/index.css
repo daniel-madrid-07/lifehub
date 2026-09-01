@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #14100c;
+  --color-surface: #1e1812;
+  --color-surface-2: #2a2119;
+  --color-ink: #f5eee3;
+  --color-muted: #a39587;
+  --color-line: #362c21;
+  --color-accent: #ff7a45;
+  --color-accent-2: #ffb03b;
+  --color-accent-ink: #1a0f08;
+  --color-danger: #ff5d5d;
+  --color-gain: #5fc98b;
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+  /* iOS: no inflar el texto al rotar */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* sin rebote blanco en los bordes al hacer scroll en iOS */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Atmosfera: brasa calida arriba + grano sutil, fijos detras de todo */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 50% at 50% -10%, rgba(255, 122, 69, 0.09), transparent 60%),
+    radial-gradient(80% 40% at 100% 110%, rgba(255, 176, 59, 0.05), transparent 60%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+button,
+a,
+select,
+input[type="time"],
+input[type="number"] {
+  /* sin retardo de doble tap en iOS */
+  touch-action: manipulation;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* iOS hace zoom si el input tiene menos de 16px */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Safe areas del iPhone (Dynamic Island + barra home) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* hueco para la tab bar inferior fija */
+.pb-nav {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbars finos y al tono (en iOS no se ven; esto es para escritorio) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-2);
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* App siempre vertical. iOS no deja bloquear la rotacion desde una web, asi
+   que en horizontal (solo en movil) se rota TODO el contenido 90deg para que
+   se siga viendo en vertical. El transform en #root ancla ahi los position:
+   fixed (tab bar, hojas), asi que tambien rotan. Nota: el teclado y los
+   selectores nativos de iOS salen en la orientacion fisica. */
+#rotate-hint {
+  display: none;
+}
+/* La clase la pone main.tsx según el ángulo real del dispositivo. */
+html[data-rotate] body {
+  overflow: hidden;
+}
+html[data-rotate] #root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vh;
+  height: 100vw;
+  transform-origin: top left;
+  overflow: hidden; /* el #root NO scrollea: asi la tab bar fija queda pegada */
+}
+html[data-rotate="cw"] #root {
+  transform: translateX(100vw) rotate(90deg);
+}
+html[data-rotate="ccw"] #root {
+  transform: translateY(100vh) rotate(-90deg);
+}
+/* el contenido scrollea dentro; la tab bar (fixed, anclada al #root con
+   transform) se queda pegada abajo sin moverse con el scroll */
+html[data-rotate] #root > div {
+  height: 100vw;
+  overflow-y: auto;
+  overflow-x: hidden;
+}

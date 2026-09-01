@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#14100c" />
+    <meta name="description" content="Centro de mando personal" />
+
+    <!-- iOS: instalable a pantalla completa desde 'Anadir a pantalla de inicio' -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Life Hub" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..500&display=swap"
+      rel="stylesheet"
+    />
+    <title>Life Hub</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="rotate-hint" aria-hidden="true">
+      <div class="rotate-inner">Gira el móvil a vertical</div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
