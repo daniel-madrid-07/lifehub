@@ -74,8 +74,32 @@ class BodyWeight(SQLModel, table=True):
     weight: float  # kg
 
 
-# (sin tabla de perfil: los datos corporales de Daniel estan hardcodeados
-#  en frontend/src/me.ts — app de un solo usuario, nada configurable)
+class Profile(SQLModel, table=True):
+    """Perfil del usuario de esta instancia (fila unica, id=1).
+
+    Sustituye a los datos corporales que antes estaban hardcodeados: se
+    rellena en el onboarding y se edita desde Ajustes.
+    """
+    id: Optional[int] = Field(default=1, primary_key=True)
+    name: Optional[str] = None
+    height_cm: float = Field(default=175)
+    birth_date: Optional[datetime] = None
+    sex: str = Field(default="m")  # m / f
+    # Multiplicador sobre el BMR (1.2 sedentario ... 1.9 muy activo)
+    activity_factor: float = Field(default=1.5)
+    goal: str = Field(default="Mantener")  # Volumen / Definicion / Mantener
+    goal_kcal_delta: float = Field(default=0)
+    protein_per_kg: float = Field(default=2.0)
+    body_fat_pct: Optional[float] = None
+    fallback_weight: float = Field(default=70)
+    # Material del gimnasio
+    bar_weight: float = Field(default=20)
+    plates: Any = Field(default=[20, 10, 5, 2.5, 1.25], sa_column=Column(JSON))
+    # Ubicacion para el clima del briefing
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    city: Optional[str] = None
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class FoodLog(SQLModel, table=True):

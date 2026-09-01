@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
 
-from . import ai, auth, briefing, config, diet, food, google_client, gym, health, icloud_client, portfolio, push, seed, studies, study_coach, tasks
+from . import ai, auth, briefing, config, diet, food, google_client, gym, health, icloud_client, portfolio, profile, push, seed, studies, study_coach, tasks
 from .db import engine, init_db
 from .models import Habit, HabitLog
 from .schemas import HabitCreate, HabitOut, HabitUpdate
@@ -49,6 +49,7 @@ app.include_router(tasks.router)
 app.include_router(push.router)
 app.include_router(health.router)
 app.include_router(diet.router)
+app.include_router(profile.router)
 
 # Clave unica de acceso a la API (app personal de un solo usuario). Si no
 # esta definida (dev local) la API queda abierta; en el servidor es

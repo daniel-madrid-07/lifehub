@@ -6,7 +6,8 @@ un flujo OAuth web de un toque: el boton abre el consentimiento de Google y el
 callback guarda el token nuevo y reinicia el contador.
 
 Para que el callback funcione, el cliente OAuth de Google debe tener registrado
-el redirect URI https://dmghub.app/api/auth/google/callback (cliente tipo Web).
+el redirect URI <APP_URL>/api/auth/google/callback (cliente tipo Web), donde
+APP_URL es la URL publica de tu instancia (variable del .env).
 """
 import json
 import os
@@ -24,7 +25,11 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/calendar.readonly",
 ]
-REDIRECT = "https://dmghub.app/api/auth/google/callback"
+def _redirect_uri() -> str:
+    """Callback de Google: se deriva de APP_URL para que cada instancia use la
+    suya sin tocar el codigo."""
+    base = config.load_env().get("APP_URL", "http://localhost:8000").rstrip("/")
+    return f"{base}/api/auth/google/callback"
 
 
 def _authorized_at() -> datetime | None:
@@ -103,11 +108,11 @@ def _flow() -> Flow:
             "client_secret": env["GOOGLE_CLIENT_SECRET"],
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
-            "redirect_uris": [REDIRECT],
+            "redirect_uris": [_redirect_uri()],
         }
     }
     flow = Flow.from_client_config(cfg, scopes=SCOPES)
-    flow.redirect_uri = REDIRECT
+    flow.redirect_uri = _redirect_uri()
     return flow
 
 
