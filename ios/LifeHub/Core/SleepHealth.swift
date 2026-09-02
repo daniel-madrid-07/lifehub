@@ -2,7 +2,7 @@ import Foundation
 import HealthKit
 
 /// Shared UserDefaults between LifeHub app and LifeHubWidgets extension.
-let sleepUD = UserDefaults(suiteName: "group.com.example.lifehub") ?? .standard
+let sleepUD = UserDefaults(suiteName: appGroupID) ?? .standard
 
 // MARK: - Data models
 

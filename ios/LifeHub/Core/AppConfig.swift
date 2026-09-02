@@ -1,5 +1,9 @@
 import Foundation
 
+/// App Group compartido por la app, los widgets y los App Intents.
+/// Cambia esto y los .entitlements a la vez si usas otro identificador.
+let appGroupID = "group.com.example.lifehub"
+
 /// Configuración de la instancia: a qué servidor apunta la app y con qué clave.
 ///
 /// Nada de esto va en el código. La URL y la clave se introducen en el

@@ -1,45 +1,115 @@
 import Foundation
 
-/// Datos personales de Daniel — la app es SOLO suya, nada configurable.
-/// Espejo de frontend/src/me.ts.
+/// Perfil del usuario, servido por el backend (`/api/profile`).
+///
+/// Antes esto era una lista de constantes personales. Ahora los valores y las
+/// fórmulas viven en el servidor y aquí solo se cachean: así la web, la app y
+/// el reloj no se desincronizan nunca.
+///
+/// La caché se guarda en el App Group para que los widgets la lean sin
+/// esperar a una petición de red.
+struct ProfileDTO: Codable {
+    var name: String?
+    var height_cm: Double
+    var birth_date: String?
+    var age: Int?
+    var sex: String
+    var activity_factor: Double
+    var goal: String
+    var goal_kcal_delta: Double
+    var protein_per_kg: Double
+    var body_fat_pct: Double?
+    var fallback_weight: Double
+    var bar_weight: Double
+    var plates: [Double]
+    var latitude: Double?
+    var longitude: Double?
+    var city: String?
+    var weight: Double
+    var bmr: Double
+    var tdee: Double
+    var kcal_target: Int
+    var protein_target: Double
+    var configured: Bool
+
+    /// Perfil neutro mientras no hay nada cacheado.
+    static let placeholder = ProfileDTO(
+        name: nil, height_cm: 175, birth_date: nil, age: nil, sex: "m",
+        activity_factor: 1.5, goal: "Mantener", goal_kcal_delta: 0,
+        protein_per_kg: 1.8, body_fat_pct: nil, fallback_weight: 70,
+        bar_weight: 20, plates: [20, 10, 5, 2.5, 1.25],
+        latitude: nil, longitude: nil, city: nil,
+        weight: 70, bmr: 0, tdee: 0, kcal_target: 0, protein_target: 0,
+        configured: false
+    )
+}
+
 enum Me {
-    static let heightCm = 180.0
-    static let birthDate = DateComponents(calendar: .current, year: 2007, month: 3, day: 6).date!
-    /// Sedentario fuera del gym + 5 días de pesas M·X·J·V·D
-    static let activityFactor = 1.5
-    /// Objetivo actual: volumen (TDEE +300). Definición sería −400.
-    static let goal = "Volumen"
-    static let goalKcalDelta = 300.0
-    static let bodyFatPct: Double? = 15
-    /// Peso de respaldo hasta que haya registros en la báscula
-    static let fallbackWeight = 70.0
-    /// Su gym: barra olímpica de 20 kg y discos por lado (kg)
-    static let barWeight = 20.0
-    static let plates: [Double] = [20, 10, 5, 2.5, 1.25]
+    private static let cacheKey = "lifehub.profile"
 
-    static var age: Int {
-        Calendar.current.dateComponents([.year], from: birthDate, to: .now).year ?? 0
+    /// Caché compartida con los widgets vía App Group.
+    private static var store: UserDefaults {
+        UserDefaults(suiteName: appGroupID) ?? .standard
     }
 
-    /// Mifflin-St Jeor (hombre)
-    static func bmr(weight: Double) -> Double {
-        10 * weight + 6.25 * heightCm - 5 * Double(age) + 5
+    private static var cached: ProfileDTO = {
+        guard let data = store.data(forKey: cacheKey),
+              let decoded = try? JSONDecoder().decode(ProfileDTO.self, from: data)
+        else { return .placeholder }
+        return decoded
+    }()
+
+    /// Perfil actual (el de respaldo hasta que se refresca).
+    static var current: ProfileDTO { cached }
+
+    /// Pide el perfil al backend y lo cachea.
+    @discardableResult
+    static func refresh() async -> ProfileDTO {
+        guard let fresh = try? await API.shared.profile() else { return cached }
+        cached = fresh
+        if let data = try? JSONEncoder().encode(fresh) {
+            store.set(data, forKey: cacheKey)
+        }
+        return fresh
     }
 
-    static func tdee(weight: Double) -> Double { bmr(weight: weight) * activityFactor }
+    /// Guarda cambios del perfil y actualiza la caché.
+    @discardableResult
+    static func save(_ patch: [String: JSONValue]) async throws -> ProfileDTO {
+        let updated = try await API.shared.updateProfile(patch)
+        cached = updated
+        if let data = try? JSONEncoder().encode(updated) {
+            store.set(data, forKey: cacheKey)
+        }
+        return updated
+    }
 
-    /// Kcal diarias según su objetivo actual
-    static func kcalTarget(weight: Double) -> Int { Int((tdee(weight: weight) + goalKcalDelta).rounded()) }
+    // ── Accesos usados por las vistas ───────────────────────────────────
 
-    /// Proteína diaria: 2 g/kg (entrena al fallo, construyendo músculo)
-    static func proteinTarget(weight: Double) -> Double { (weight * 2).rounded() }
+    static var heightCm: Double { cached.height_cm }
+    static var age: Int { cached.age ?? 0 }
+    static var goal: String { cached.goal }
+    static var goalKcalDelta: Double { cached.goal_kcal_delta }
+    static var bodyFatPct: Double? { cached.body_fat_pct }
+    static var fallbackWeight: Double { cached.fallback_weight }
+    static var barWeight: Double { cached.bar_weight }
+    static var plates: [Double] { cached.plates }
+    static var isConfigured: Bool { cached.configured }
+
+    /// Objetivos: los calcula el servidor con el último peso de la báscula.
+    /// El parámetro se mantiene por compatibilidad con las vistas.
+    static func kcalTarget(weight: Double = 0) -> Int { cached.kcal_target }
+    static func proteinTarget(weight: Double = 0) -> Double { cached.protein_target }
+    static func bmr(weight: Double = 0) -> Double { cached.bmr }
+    static func tdee(weight: Double = 0) -> Double { cached.tdee }
 
     /// Calculadora de discos: qué poner por lado para un peso total con barra.
+    /// En local porque se usa en cada serie mientras entrenas.
     static func platesPerSide(total: Double) -> (plates: [Double], leftover: Double) {
-        var perSide = (total - barWeight) / 2
+        var perSide = (total - cached.bar_weight) / 2
         guard perSide > 0 else { return ([], 0) }
         var out: [Double] = []
-        for plate in plates {
+        for plate in cached.plates.sorted(by: >) {
             while perSide >= plate - 1e-9 {
                 out.append(plate)
                 perSide -= plate

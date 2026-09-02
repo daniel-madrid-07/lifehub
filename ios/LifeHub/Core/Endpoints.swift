@@ -204,6 +204,12 @@ extension API {
     func outfitToday() async throws -> OutfitSuggestion { try await request("/wardrobe/outfit/today") }
     func aiOutfit() async throws -> AIText { try await request("/ai/outfit") }
 
+    // ── Perfil ───────────────────────────────────────────────────────────────
+    func profile() async throws -> ProfileDTO { try await request("/profile") }
+    func updateProfile(_ data: [String: JSONValue]) async throws -> ProfileDTO {
+        try await request("/profile", method: "PATCH", body: JSONValue.object(data))
+    }
+
     // ── Detección de eventos ─────────────────────────────────────────────────
     func detectEvent(_ text: String) async throws -> DetectedEventsResponse {
         try await request("/ai/detect-event", method: "POST",

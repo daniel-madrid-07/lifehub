@@ -558,7 +558,7 @@ struct SleepPlanProvider: TimelineProvider {
     func fetch() async -> SleepPlanEntry {
         let cal = Calendar.current; let now = Date()
         let tomorrow = cal.date(byAdding: .day, value: 1, to: now)!
-        let ud = UserDefaults(suiteName: "group.com.example.lifehub") ?? .standard
+        let ud = UserDefaults(suiteName: appGroupID) ?? .standard
         let latency: TimeInterval = 15 * 60
 
         // Personal sleep need from SleepManager (falls back to 8 h)
