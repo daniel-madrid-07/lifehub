@@ -2,7 +2,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { api, getToken } from "../api"
 import { useLoad } from "../hooks"
-import { ME, myAge, myBmr, myKcalTarget, myProteinTarget, myTdee } from "../me"
+import { useProfile } from "../me"
 import type { MeasureEntry, Measures } from "../types"
 import { CameraIcon, CheckIcon, PlusIcon, XIcon } from "../components/icons"
 import { ErrorCard, PageHeader, SkeletonList } from "../components/ui"
@@ -14,30 +14,36 @@ const MEASURE_SITES: { id: string; label: string }[] = [
   { id: "pierna", label: "Pierna" },
 ]
 
-const ACTIVITY_LABEL = "sedentario + gym 5 días"
+function activityLabel(factor: number): string {
+  if (factor < 1.35) return "sedentario"
+  if (factor < 1.55) return "actividad ligera"
+  if (factor < 1.75) return "actividad moderada"
+  return "muy activo"
+}
 
 export default function GymHealth() {
   const { data: weights, error, reload } = useLoad(api.gym.bodyweight)
+  const me = useProfile()
 
   if (error) return <ErrorCard detail={error} onRetry={reload} />
   if (!weights) return <SkeletonList rows={4} tall />
 
   const latest = weights[0]
-  const weight = latest?.weight ?? ME.fallbackWeight
+  const weight = latest?.weight ?? me.fallbackWeight
 
-  const h = ME.heightCm
+  const h = me.heightCm
   const hm = h / 100
   const imc = weight / (hm * hm)
   const imcLabel =
     imc < 18.5 ? "bajo peso" : imc < 25 ? "saludable" : imc < 30 ? "sobrepeso" : "obesidad"
-  const bmr = myBmr(weight)
-  const tdee = myTdee(weight)
-  const kcal = myKcalTarget(weight)
-  const protein = myProteinTarget(weight)
+  const bmr = me.bmr
+  const tdee = me.tdee
+  const kcal = me.kcalTarget
+  const protein = me.proteinTarget
   const waterL = (weight * 35) / 1000
   const idealMin = 18.5 * hm * hm
   const idealMax = 24.9 * hm * hm
-  const lean = ME.bodyFatPct != null ? weight * (1 - ME.bodyFatPct / 100) : null
+  const lean = me.bodyFatPct != null ? weight * (1 - me.bodyFatPct / 100) : null
   const ffmi = lean != null ? lean / (hm * hm) + 6.1 * (1.8 - hm) : null
 
   return (
@@ -46,9 +52,9 @@ export default function GymHealth() {
 
       <div className="px-4 py-3.5 rounded-2xl border border-line bg-surface/50 mb-2 flex items-baseline justify-between gap-3">
         <div>
-          <div className="text-muted text-xs uppercase tracking-[0.15em]">Daniel</div>
+          <div className="text-muted text-xs uppercase tracking-[0.15em]">{me.name ?? "Tu perfil"}</div>
           <div className="text-sm text-muted mt-0.5">
-            {h} cm · {myAge()} años · {ACTIVITY_LABEL}
+            {h} cm{me.age != null ? ` · ${me.age} años` : ""} · {activityLabel(me.activityFactor)}
           </div>
         </div>
         <div className="text-right shrink-0">
@@ -63,13 +69,13 @@ export default function GymHealth() {
 
       <div className="px-4 py-3.5 rounded-2xl border border-accent/40 bg-surface mb-6">
         <div className="text-accent text-xs uppercase tracking-[0.2em] mb-1">
-          Objetivo actual: {ME.goal}
+          Objetivo actual: {me.goal}
         </div>
         <p className="text-sm leading-relaxed">
           <span className="font-display text-2xl tnum mr-2">{kcal.toLocaleString("es-ES")} kcal</span>
           <span className="text-muted">
-            y {protein} g de proteína al día (TDEE {ME.goalKcalDelta >= 0 ? "+" : ""}
-            {ME.goalKcalDelta}). Es lo que usa Macros automáticamente, recalculado con tu peso.
+            y {protein} g de proteína al día (TDEE {me.goalKcalDelta >= 0 ? "+" : ""}
+            {me.goalKcalDelta}). Es lo que usa Macros automáticamente, recalculado con tu peso.
           </span>
         </p>
       </div>
@@ -82,7 +88,7 @@ export default function GymHealth() {
         <Stat label="Proteína" value={`${protein} g`} sub="al día (2 g/kg)" />
         <Stat label="Agua" value={`${waterL.toFixed(1)} L`} sub="al día (35 ml/kg)" />
         {lean != null && (
-          <Stat label="Masa magra" value={`${lean.toFixed(1)} kg`} sub={`con ${ME.bodyFatPct}% graso`} />
+          <Stat label="Masa magra" value={`${lean.toFixed(1)} kg`} sub={`con ${me.bodyFatPct}% graso`} />
         )}
         {ffmi != null && (
           <Stat
@@ -93,7 +99,7 @@ export default function GymHealth() {
         )}
       </div>
 
-      {ME.bodyFatPct == null && (
+      {me.bodyFatPct == null && (
         <p className="text-muted/60 text-xs mt-4">
           Cuando te midas el % graso, dímelo y activo masa magra y FFMI.
         </p>

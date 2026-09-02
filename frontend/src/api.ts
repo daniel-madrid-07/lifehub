@@ -19,6 +19,7 @@ import type {
   Measures,
   NoteItem,
   PortfolioOverview,
+  ProfileDTO,
   ProgressPhotoItem,
   ShopItem,
   StudyOverview,
@@ -218,6 +219,12 @@ export const api = {
     create: (text: string) =>
       request<NoteItem>("/notes", { method: "POST", body: JSON.stringify({ text }) }),
     remove: (id: number) => request<{ status: string }>(`/notes/${id}`, { method: "DELETE" }),
+  },
+
+  profile: {
+    get: () => request<ProfileDTO>("/profile"),
+    update: (data: Partial<ProfileDTO>) =>
+      request<ProfileDTO>("/profile", { method: "PATCH", body: JSON.stringify(data) }),
   },
 
   push: {

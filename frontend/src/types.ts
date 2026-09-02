@@ -318,3 +318,29 @@ export interface CalendarOverview {
   detail?: string
   events?: CalendarEvent[]
 }
+
+/** Perfil del usuario, tal cual lo devuelve /api/profile (snake_case). */
+export interface ProfileDTO {
+  name: string | null
+  height_cm: number
+  birth_date: string | null
+  age: number | null
+  sex: "m" | "f"
+  activity_factor: number
+  goal: string
+  goal_kcal_delta: number
+  protein_per_kg: number
+  body_fat_pct: number | null
+  fallback_weight: number
+  bar_weight: number
+  plates: number[]
+  latitude: number | null
+  longitude: number | null
+  city: string | null
+  weight: number
+  bmr: number
+  tdee: number
+  kcal_target: number
+  protein_target: number
+  configured: boolean
+}

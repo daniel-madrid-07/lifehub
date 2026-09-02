@@ -2,23 +2,22 @@ import { useState } from "react"
 import { api } from "../api"
 import { useLoad } from "../hooks"
 import { haptic } from "../haptics"
-import { ME, myKcalTarget, myProteinTarget } from "../me"
+import { useProfile } from "../me"
 import type { FoodItem } from "../types"
 import { PlusIcon, XIcon } from "../components/icons"
 import { CoachNote, EmptyState, ErrorCard, PageHeader, SkeletonList } from "../components/ui"
 
 export default function Macros() {
   const { data, setData, error, reload } = useLoad(() => api.food.day())
-  const { data: weights } = useLoad(api.gym.bodyweight)
   const { data: plan } = useLoad(api.diet.plan)
+  const me = useProfile()
 
   if (error) return <ErrorCard detail={error} onRetry={reload} />
   if (!data) return <SkeletonList rows={4} />
 
-  // Objetivos automáticos según su peso real y su objetivo actual (me.ts)
-  const weight = weights?.[0]?.weight ?? ME.fallbackWeight
-  const kcalTarget = myKcalTarget(weight)
-  const proteinTarget = myProteinTarget(weight)
+  // Objetivos automáticos según el peso real y el objetivo del perfil
+  const kcalTarget = me.kcalTarget
+  const proteinTarget = me.proteinTarget
 
   const addItem = (item: FoodItem) =>
     setData((prev) =>
@@ -57,7 +56,7 @@ export default function Macros() {
 
   return (
     <div>
-      <PageHeader eyebrow={`Nutrición · hoy · objetivo ${ME.goal.toLowerCase()}`} title="Macros" />
+      <PageHeader eyebrow={`Nutrición · hoy · objetivo ${me.goal.toLowerCase()}`} title="Macros" />
 
       <div className="mb-6">
         <MacroBar label="Calorías" value={data.total_kcal} target={kcalTarget} unit="kcal" />
