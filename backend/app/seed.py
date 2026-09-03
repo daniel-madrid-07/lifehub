@@ -4,7 +4,7 @@ import re
 from sqlmodel import Session, select
 
 from .db import engine
-from .models import Exercise, Habit, Routine, RoutineExercise
+from .models import Exercise, Habit, Routine, RoutineDay, RoutineExercise
 
 # Marcador: una vez sembrados los ejemplos personales (habitos/comidas), no se
 # vuelven a crear aunque el usuario los borre. Asi sus cambios persisten.
@@ -189,175 +189,37 @@ def add_gym_exercises():
             session.commit()
 
 
-# Split real de Daniel (5 dias). El orden importa: el primero es el principal.
-# weekday: lunes=0 ... domingo=6
-REAL_ROUTINES = [
-    ("Hombro y gemelo", 1, [  # Martes
-        "Press militar", "Press de hombro con mancuernas", "Elevaciones laterales",
-        "Face pull", "Pajaros (deltoide posterior)",
-        "Elevacion de gemelos", "Calf Raise on Leg Press",
-    ]),
-    ("Pecho", 2, [  # Miercoles
-        "Press banca", "Press inclinado con mancuernas", "Aperturas con mancuernas",
-        "Cruces en polea", "Fondos en paralelas",
-    ]),
-    ("Hombro e isquios", 3, [  # Jueves
-        "Press de hombro con mancuernas", "Elevaciones laterales", "Face pull",
-        "Peso muerto rumano", "Curl femoral",
-    ]),
-    ("Espalda y cuadriceps", 4, [  # Viernes
-        "Dominadas", "Jalon al pecho", "Remo con barra", "Sentadilla",
-        "Prensa de pierna", "Extension de cuadriceps",
-    ]),
-    ("Brazo", 6, [  # Domingo
-        "Curl con barra", "Curl martillo", "Curl predicador",
-        "Press frances", "Extension de triceps en polea",
-    ]),
-]
-
-# weekday -> nombre de rutina (normal)
-ROUTINE_BY_WEEKDAY = {wd: name for name, wd, _ in REAL_ROUTINES}
-
-# Rutina de verano: solo Martes (Front) y Viernes (Back), 1 serie de todo.
-SUMMER_ROUTINES = [
-    ("Front Day", 1, [  # Martes
-        "Cable Lateral Raise", "Smith Machine Shoulder Press", "Smith Machine Incline Press",
-        "Machine Chest Press", "Machine Pec Fly", "Cable Hammer Curl", "Machine Biceps Curl",
-        "Leg Extension",
-    ]),
-    ("Back Day", 4, [  # Viernes
-        "Seated Cable Row", "Machine Lat Pulldown", "Machine Front Delt Raise",
-        "Machine Leg Curl", "Calf Raise on Leg Press",
-    ]),
-]
-SUMMER_BY_WEEKDAY = {wd: name for name, wd, _ in SUMMER_ROUTINES}
-SUMMER_NAMES = {name for name, _, _ in SUMMER_ROUTINES}
-
-# Modo de rutina activo (normal | summer), persistido en un archivo.
-ROUTINE_MODE_FILE = os.path.join(os.path.dirname(__file__), "..", "routine_mode.txt")
-
-
-def get_routine_mode() -> str:
-    try:
-        mode = open(ROUTINE_MODE_FILE, encoding="utf-8").read().strip()
-        return "summer" if mode == "summer" else "normal"
-    except OSError:
-        return "normal"
-
-
-def set_routine_mode(mode: str) -> str:
-    mode = "summer" if mode == "summer" else "normal"
-    with open(ROUTINE_MODE_FILE, "w", encoding="utf-8") as f:
-        f.write(mode)
-    return mode
+# El calendario semanal (que rutina toca cada dia) vive en la tabla RoutineDay:
+# lo elige el usuario, o lo rellena una plantilla de routine_templates.py.
 
 
 def routine_by_weekday() -> dict:
-    """Mapeo weekday -> nombre de rutina segun el modo activo."""
-    return SUMMER_BY_WEEKDAY if get_routine_mode() == "summer" else ROUTINE_BY_WEEKDAY
-
-
-def add_summer_routines():
-    """Crea las rutinas de verano si faltan (por nombre; NO gated por el marcador,
-    para que aparezcan tambien en instalaciones ya sembradas). 1 serie de todo."""
+    """Mapeo weekday -> nombre de rutina, segun lo que tenga configurado el
+    usuario. Vacio si aun no ha asignado dias."""
     with Session(engine) as session:
-        existing = {r.name for r in session.exec(select(Routine)).all()}
-        by_ex_name = {e.name.strip().lower(): e for e in session.exec(select(Exercise)).all()}
-        for name, _weekday, exercise_names in SUMMER_ROUTINES:
-            if name in existing:
-                continue
-            routine = Routine(name=name)
-            session.add(routine)
-            session.commit()
-            session.refresh(routine)
-            pos = 0
-            for ex_name in exercise_names:
-                ex = by_ex_name.get(ex_name.strip().lower())
-                if ex is None:
-                    continue
-                session.add(RoutineExercise(
-                    routine_id=routine.id, exercise_id=ex.id, position=pos,
-                    sets=1, reps_min=6, reps_max=8,
-                ))
-                pos += 1
-            session.commit()
+        rows = session.exec(select(RoutineDay)).all()
+        if not rows:
+            return {}
+        names = {r.id: r.name for r in session.exec(select(Routine)).all()}
+        return {row.weekday: names[row.routine_id] for row in rows if row.routine_id in names}
 
 
-def add_real_routines():
-    """Crea las 5 rutinas reales de Daniel una sola vez. Tras el marcador, no
-    se recrean si las borra/edita. Daniel hace 2 series de todo."""
-    if os.path.exists(SEED_MARKER):
-        return
-    real_names = {name for name, _, _ in REAL_ROUTINES}
+def set_routine_day(weekday: int, routine_id: int | None) -> dict:
+    """Asigna (o quita, con routine_id=None) la rutina de un dia."""
+    weekday = max(0, min(6, weekday))
     with Session(engine) as session:
-        routines = session.exec(select(Routine)).all()
-        existing_names = {r.name for r in routines}
-        by_ex_name = {e.name.strip().lower(): e for e in session.exec(select(Exercise)).all()}
-
-        # migracion 4 -> 2 series en las rutinas reales ya creadas
-        real_ids = [r.id for r in routines if r.name in real_names]
-        if real_ids:
-            for re_ in session.exec(
-                select(RoutineExercise).where(RoutineExercise.routine_id.in_(real_ids))
-            ).all():
-                if re_.sets == 4:
-                    re_.sets = 2
-                    session.add(re_)
-            session.commit()
-
-        for name, _weekday, exercise_names in REAL_ROUTINES:
-            if name in existing_names:
-                continue
-            routine = Routine(name=name)
-            session.add(routine)
-            session.commit()
-            session.refresh(routine)
-            pos = 0
-            for ex_name in exercise_names:
-                ex = by_ex_name.get(ex_name.strip().lower())
-                if ex is None:
-                    continue
-                session.add(RoutineExercise(
-                    routine_id=routine.id, exercise_id=ex.id, position=pos,
-                    sets=2, reps_min=6, reps_max=8,
-                ))
-                pos += 1
-            session.commit()
-
-
-def migrate_hombro_gemelo():
-    """Añade Face pull y Calf Raise on Leg Press a Hombro y gemelo y reordena.
-    Idempotente: no hace nada si ya están los dos ejercicios."""
-    DESIRED = [
-        "Press militar", "Press de hombro con mancuernas", "Elevaciones laterales",
-        "Face pull", "Pajaros (deltoide posterior)",
-        "Elevacion de gemelos", "Calf Raise on Leg Press",
-    ]
-    with Session(engine) as session:
-        routine = session.exec(select(Routine).where(Routine.name == "Hombro y gemelo")).first()
-        if not routine:
-            return
-        by_ex_name = {e.name.strip().lower(): e for e in session.exec(select(Exercise)).all()}
-        existing_res = {re_.exercise_id: re_ for re_ in session.exec(
-            select(RoutineExercise).where(RoutineExercise.routine_id == routine.id)
-        ).all()}
-        # si ya tiene los ejercicios nuevos, no tocar
-        face_pull = by_ex_name.get("face pull")
-        calf_raise = by_ex_name.get("calf raise on leg press")
-        if (face_pull and face_pull.id in existing_res and
-                calf_raise and calf_raise.id in existing_res):
-            return
-        for pos, ex_name in enumerate(DESIRED):
-            ex = by_ex_name.get(ex_name.strip().lower())
-            if not ex:
-                continue
-            if ex.id in existing_res:
-                re_ = existing_res[ex.id]
-                re_.position = pos
-                session.add(re_)
-            else:
-                session.add(RoutineExercise(
-                    routine_id=routine.id, exercise_id=ex.id, position=pos,
-                    sets=2, reps_min=6, reps_max=8,
-                ))
+        row = session.exec(select(RoutineDay).where(RoutineDay.weekday == weekday)).first()
+        if routine_id is None:
+            if row:
+                session.delete(row)
+                session.commit()
+            return routine_by_weekday()
+        if row:
+            row.routine_id = routine_id
+        else:
+            row = RoutineDay(weekday=weekday, routine_id=routine_id)
+        session.add(row)
         session.commit()
+    return routine_by_weekday()
+
+

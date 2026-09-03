@@ -39,6 +39,17 @@ class Routine(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class RoutineDay(SQLModel, table=True):
+    """Que rutina toca cada dia de la semana (weekday: lunes=0 ... domingo=6).
+
+    Antes el calendario semanal estaba fijo en el codigo; ahora lo decide el
+    usuario, o lo rellena la plantilla que aplique.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    weekday: int = Field(index=True, unique=True, ge=0, le=6)
+    routine_id: int = Field(foreign_key="routine.id")
+
+
 class RoutineExercise(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     routine_id: int = Field(foreign_key="routine.id", index=True)

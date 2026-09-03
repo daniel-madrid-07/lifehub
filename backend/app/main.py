@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
 
-from . import ai, auth, briefing, config, diet, food, google_client, gym, health, icloud_client, portfolio, profile, push, seed, studies, study_coach, tasks
+from . import ai, auth, briefing, config, diet, food, google_client, gym, health, icloud_client, portfolio, profile, push, routine_templates, seed, studies, study_coach, tasks
 from .db import engine, init_db
 from .models import Habit, HabitLog
 from .schemas import HabitCreate, HabitOut, HabitUpdate
@@ -25,9 +25,6 @@ async def lifespan(app: FastAPI):
     seed.run()
     seed.add_diet_habits()
     seed.add_gym_exercises()
-    seed.add_real_routines()
-    seed.add_summer_routines()  # rutinas de verano (Front/Back), idempotente
-    seed.migrate_hombro_gemelo()  # añade Face pull y Calf Raise on Leg Press
     seed.mark_seeded()  # a partir de aqui no se recrean los ejemplos borrados
     scheduler.add_job(check_reminders, "cron", minute="*")
     # Precarga los datos de Epitech por la manana para que la pestana abra al instante
@@ -50,6 +47,7 @@ app.include_router(push.router)
 app.include_router(health.router)
 app.include_router(diet.router)
 app.include_router(profile.router)
+app.include_router(routine_templates.router)
 
 # Clave unica de acceso a la API (app personal de un solo usuario). Si no
 # esta definida (dev local) la API queda abierta; en el servidor es

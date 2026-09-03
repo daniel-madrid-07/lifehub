@@ -371,23 +371,25 @@ def _routine_out(session: Session, routine: Routine) -> dict:
         "id": routine.id,
         "name": routine.name,
         "today": routine.name == today_name,
-        "group": "verano" if routine.name in seed.SUMMER_NAMES else "normal",
         "exercises": exercises,
     }
 
 
-class RoutineModeIn(BaseModel):
-    mode: str
+class RoutineDayIn(BaseModel):
+    weekday: int = Field(ge=0, le=6)
+    routine_id: Optional[int] = None
 
 
-@router.get("/routine-mode")
-def routine_mode_get():
-    return {"mode": seed.get_routine_mode()}
+@router.get("/routine-days")
+def routine_days_get():
+    """Que rutina toca cada dia (weekday -> nombre)."""
+    return {"days": seed.routine_by_weekday()}
 
 
-@router.post("/routine-mode")
-def routine_mode_set(payload: RoutineModeIn):
-    return {"mode": seed.set_routine_mode(payload.mode)}
+@router.post("/routine-days")
+def routine_days_set(payload: RoutineDayIn):
+    """Asigna la rutina de un dia; routine_id=None lo deja como descanso."""
+    return {"days": seed.set_routine_day(payload.weekday, payload.routine_id)}
 
 
 @router.get("/routines")
@@ -533,7 +535,6 @@ def device_routines():
                 "id": r.id,
                 "name": r.name,
                 "today": r.name == today_name,
-                "group": "verano" if r.name in seed.SUMMER_NAMES else "normal",
             }
             for r in routines
         ]
