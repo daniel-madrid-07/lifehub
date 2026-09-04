@@ -25,6 +25,7 @@ async def lifespan(app: FastAPI):
     seed.run()
     seed.add_diet_habits()
     seed.add_gym_exercises()
+    diet.seed_diet()
     seed.mark_seeded()  # a partir de aqui no se recrean los ejemplos borrados
     scheduler.add_job(check_reminders, "cron", minute="*")
     # Precarga los datos de Epitech por la manana para que la pestana abra al instante

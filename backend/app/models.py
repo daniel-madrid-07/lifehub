@@ -113,6 +113,49 @@ class Profile(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class Ingredient(SQLModel, table=True):
+    """Valor nutricional de un ingrediente.
+
+    unit "g": kcal/proteina por 100 g. unit "u": por pieza.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(unique=True, index=True)
+    kcal: float = Field(default=0)
+    protein: float = Field(default=0)
+    unit: str = Field(default="g")
+
+
+class Dish(SQLModel, table=True):
+    """Plato del recetario del usuario."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(unique=True, index=True)
+    # Rol en el plan: main (comida/cena) o side (desayuno/merienda)
+    role: str = Field(default="main")
+
+
+class DishIngredient(SQLModel, table=True):
+    """Cantidad de un ingrediente dentro de un plato."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    dish_id: int = Field(foreign_key="dish.id", index=True)
+    ingredient_id: int = Field(foreign_key="ingredient.id")
+    qty: float = Field(default=0)
+    unit: str = Field(default="g")
+
+
+class MealPlanDay(SQLModel, table=True):
+    """Que se come cada dia (weekday: lunes=0 ... domingo=6).
+
+    dinner_dish_id es la cena; la comida del dia siguiente sale de la cena de
+    hoy si el usuario cocina de dos en dos (reuse_leftovers en Profile).
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    weekday: int = Field(index=True, unique=True, ge=0, le=6)
+    dinner_dish_id: Optional[int] = Field(default=None, foreign_key="dish.id")
+    lunch_dish_id: Optional[int] = Field(default=None, foreign_key="dish.id")
+    breakfast_dish_id: Optional[int] = Field(default=None, foreign_key="dish.id")
+    snack_dish_id: Optional[int] = Field(default=None, foreign_key="dish.id")
+
+
 class FoodLog(SQLModel, table=True):
     """Modulo Nutricion > Macros: una entrada por comida apuntada."""
     id: Optional[int] = Field(default=None, primary_key=True)
