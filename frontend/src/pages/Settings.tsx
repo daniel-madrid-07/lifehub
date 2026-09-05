@@ -16,7 +16,7 @@ const SECTIONS: { id: Section; label: string; hint: string; icon: typeof PulseIc
   { id: "gym", label: "Rutinas de gym", hint: "Crear y editar rutinas y ejercicios", icon: DumbbellIcon },
   { id: "habits", label: "Hábitos y comidas", hint: "Crear, editar o pausar tus rutinas diarias", icon: PulseIcon },
   { id: "shopping", label: "Lista de la compra", hint: "Añadir o quitar productos", icon: BowlIcon },
-  { id: "conexiones", label: "Conexiones", hint: "Token de Google y sesión de Epitech", icon: MailIcon },
+  { id: "conexiones", label: "Conexiones", hint: "Token de Google y sesión del intra", icon: MailIcon },
   { id: "navbar", label: "Barra de navegación", hint: "Carrusel o clásica", icon: GridIcon },
 ]
 
@@ -157,7 +157,7 @@ function ConexionesSection() {
 
           <div className="rounded-2xl border border-line bg-surface/50 p-5">
             <div className="flex items-center justify-between gap-3 mb-1">
-              <span className="font-medium">Epitech · intra</span>
+              <span className="font-medium">Estudios · intra</span>
               {(() => {
                 const ep = data.epitech
                 const d = ep.days_left

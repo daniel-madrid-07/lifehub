@@ -17,7 +17,7 @@ struct SettingsView: View {
             SettingsLink(icon: "cart", title: "Lista de la compra",
                          hint: "Añadir o quitar productos") { ShoppingScreen() }
             SettingsLink(icon: "envelope", title: "Conexiones",
-                         hint: "Token de Google y sesión de Epitech") { ConnectionsView() }
+                         hint: "Token de Google y sesión del intra") { ConnectionsView() }
         }
     }
 }
@@ -175,7 +175,7 @@ struct ConnectionsView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     ConnectionRow(
-                        name: "Epitech · intra",
+                        name: "Estudios · intra",
                         connected: status.epitech.connected,
                         detail: status.epitech.days_left.map { "~\($0) días" }
                     )

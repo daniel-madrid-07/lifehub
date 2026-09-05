@@ -19,7 +19,7 @@ export default function Studies() {
 
   const header = (
     <PageHeader
-      eyebrow="Epitech"
+      eyebrow="Estudios"
       title="Estudios"
       action={<RefreshButton onClick={forceReload} busy={refreshing} />}
     />

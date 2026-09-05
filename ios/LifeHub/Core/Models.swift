@@ -432,13 +432,13 @@ struct AuthStatus: Codable {
         let production: Bool?
         let connected: Bool
     }
-    struct Epitech: Codable {
+    struct Intra: Codable {
         let connected: Bool
         let days_left: Int?
         let expires_at: String?
     }
     let google: Google
-    let epitech: Epitech
+    let epitech: Intra
 }
 
 // ── Armario ──────────────────────────────────────────────────────────────────

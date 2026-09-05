@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Estudios (Epitech vía intra-bot): resumen IA, proyectos y actividades
+/// Estudios (vía intra-bot): resumen IA, proyectos y actividades
 /// activos. Si no hay nada, no se muestra nada (fin de curso = normal).
 struct StudiesView: View {
     @State private var overview: StudyOverview?
@@ -86,7 +86,7 @@ struct StudiesView: View {
                     }
 
                     if (o.projects ?? []).isEmpty && (o.activities ?? []).isEmpty {
-                        EmptyState(text: "Nada activo en Epitech ahora mismo.")
+                        EmptyState(text: "Nada activo ahora mismo.")
                     }
 
                     Button {

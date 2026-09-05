@@ -1,5 +1,5 @@
 /**
- * Ajustes locales de Daniel (solo este dispositivo, sin backend).
+ * Ajustes locales del dispositivo (no se sincronizan con el backend).
  * Guardados en localStorage. Los componentes se suscriben con useSetting y se
  * re-renderizan al cambiar via un evento propio.
  */
