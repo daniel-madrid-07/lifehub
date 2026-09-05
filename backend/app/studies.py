@@ -72,7 +72,7 @@ def _fetch() -> dict:
         return {"status": "error", "detail": f"No se pudo conectar con el intra-bot: {e}"}
 
     if resp.status_code == 401:
-        return {"status": "error", "detail": "Sesion de Epitech caducada, hace falta volver a iniciar sesion en el servidor"}
+        return {"status": "error", "detail": "Sesion del intra caducada, hace falta volver a iniciar sesion en el servidor"}
     if resp.status_code == 503:
         return {"status": "error", "detail": "El intra-bot no tiene sesion guardada todavia"}
     if not resp.ok:

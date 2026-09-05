@@ -1,4 +1,4 @@
-"""Estado y renovacion del token de Google (Gmail/Calendar) + estado de Epitech.
+"""Estado y renovacion del token de Google (Gmail/Calendar) + estado del intra.
 
 En modo Testing el refresh_token de Google caduca a los 7 dias. Aqui se lleva un
 contador (dias restantes desde la ultima autorizacion) y se ofrece renovar con

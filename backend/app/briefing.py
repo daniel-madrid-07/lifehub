@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import requests
 from sqlmodel import Session, select
 
-from . import config, google_client, gym, icloud_client, notify, portfolio, seed, tasks
+from . import config, google_client, gym, icloud_client, notify, portfolio, profile, seed, tasks
 from .db import engine
 from .models import BodyWeight, Exercise, Habit, Routine, RoutineExercise, Workout, WorkoutSet
 from .stats import habit_to_out
@@ -25,8 +25,14 @@ from .stats import habit_to_out
 ALPACA_DROP_PCT = -3.0
 BITVAVO_DROP_PCT = -5.0
 
-# Madrid (para el clima del briefing)
-MADRID_LAT, MADRID_LON = 40.4168, -3.7038
+# Ubicacion para el clima: la del perfil del usuario. Sin ella, no hay
+# seccion de clima en el briefing.
+def _location() -> tuple[float, float, str] | None:
+    with Session(engine) as session:
+        p = profile.get_profile(session)
+        if p.latitude is None or p.longitude is None:
+            return None
+        return p.latitude, p.longitude, (p.city or "Tu zona")
 
 # Frases de empuje (una por dia, deterministica)
 PHRASES = [
@@ -112,13 +118,13 @@ def _week_coach(sections: list[str]) -> str | None:
     try:
         meta, repo = study_coach._pick(study_coach._env())
         if meta and meta.get("deadline"):
-            study = f"Proyecto Epitech: {meta.get('title')} (entrega {meta['deadline']})."
+            study = f"Proyecto: {meta.get('title')} (entrega {meta['deadline']})."
     except Exception:
         pass
 
     ctx = f"{plain}\nTareas pendientes: {tasks_txt}. {study}"
     prompt = (
-        "Eres su coach (estudiante Epitech, gym 5 dias, objetivo volumen). Con el resumen de tu "
+        "Eres su coach personal. Con el resumen de tu "
         "semana, escribe 2-3 frases: una valoracion honesta de como fue y EN QUE deberias "
         "centrarte la semana que viene (gym, estudios o lo que mas urja). Hablale de TU (tu/te/tus), "
         "NUNCA en tercera persona ni digas su nombre. Tono directo, sin emojis ni saludos, en "
@@ -198,13 +204,17 @@ def _week_portfolio() -> str | None:
 
 
 def _weather_section(now) -> str | None:
+    location = _location()
+    if location is None:
+        return None  # sin ubicacion en el perfil no hay clima
+    lat, lon, city = location
     r = requests.get(
         "https://api.open-meteo.com/v1/forecast",
         params={
-            "latitude": MADRID_LAT, "longitude": MADRID_LON,
+            "latitude": lat, "longitude": lon,
             "current": "temperature_2m,weather_code",
             "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max",
-            "timezone": "Europe/Madrid", "forecast_days": 1,
+            "timezone": str(config.TZ), "forecast_days": 1,
         },
         timeout=15,
     )
@@ -217,7 +227,7 @@ def _weather_section(now) -> str | None:
     tmin = round(daily.get("temperature_2m_min", [0])[0])
     rain = daily.get("precipitation_probability_max", [0])[0]
     desc = _weather_desc(cur.get("weather_code", 0))
-    line = f"<b>Madrid</b>: {temp}° ahora · {desc} · {tmin}–{tmax}°"
+    line = f"<b>{city}</b>: {temp}° ahora · {desc} · {tmin}–{tmax}°"
     if rain and rain >= 30:
         line += f" · lluvia {rain}%"
     return line

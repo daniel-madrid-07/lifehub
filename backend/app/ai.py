@@ -55,8 +55,8 @@ def ask(prompt: str, cache_key: str | None = None, ttl: float = 3600) -> str | N
 # (no la IA); cuando se llega a la IA, es porque ya hay algo que decir.
 VOICE = (
     " Hablale en segunda persona (tu, te, tus), como si se lo dijeras a el a la cara. "
-    "NUNCA digas 'Daniel' ni hables de el en tercera persona (nada de 'la cartera de Daniel' "
-    "ni 'los correos de Daniel': di 'tu cartera', 'tus correos')."
+    "NUNCA hables del usuario en tercera persona ni digas su nombre (nada de "
+    "'la cartera de X' ni 'los correos de X': di 'tu cartera', 'tus correos')."
 )
 STYLE = VOICE + " Se concreto y especifico a TUS datos; nada de consejos genericos de manual."
 
@@ -74,7 +74,7 @@ def filter_important_mail(messages: list[dict]) -> list[dict]:
     )
     prompt = (
         "De esta lista de correos no leidos, devuelve SOLO los numeros de los que son IMPORTANTES "
-        "de verdad para Daniel: de personas reales, su universidad (Epitech), banco, medico, citas, "
+        "de verdad para el usuario: de personas reales, sus estudios, banco, medico, citas, "
         "pagos, tramites, entrevistas/trabajo, o algo que requiera su atencion o accion. EXCLUYE "
         "newsletters, marketing, promociones, redes sociales, recibos rutinarios y notificaciones "
         "automaticas (incluidos los avisos de Google sobre inicios de sesion o datos compartidos "

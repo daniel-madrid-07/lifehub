@@ -1,8 +1,8 @@
 """Modulo Gym (tipo Hevy): rutinas de ejercicios, registro de series
 (peso x repes), progreso por ejercicio y recomendacion de peso.
 
-Algoritmo de recomendacion — calibrado para Daniel (junio 2026), que lleva
-TODAS las series al fallo:
+Algoritmo de recomendacion, pensado para quien lleva las series cerca del
+fallo:
 - Doble progresion sobre la ultima sesion, rango por defecto 6-8 repes.
 - Sube peso solo si la MEJOR serie llego a reps_max Y la ULTIMA serie
   (la mas fatigada) no se cayo del minimo — al fallo la caida entre series
@@ -10,11 +10,11 @@ TODAS las series al fallo:
 - El peso nuevo se calcula desde el 1RM estimado (media de Epley y
   Brzycki, mas estable que una sola formula) apuntando a reps_min, y se
   predicen las repes que deberian salir con el peso nuevo.
-- Saltos disponibles en su gym: 1 kg en barra/maquina/polea (hay
-  microdiscos), 2,5 kg en mancuernas. Peso corporal progresa por repes y
-  sugiere lastre al superar el rango.
+- Saltos de peso: 1 kg en barra/maquina/polea (asumiendo microdiscos),
+  2,5 kg en mancuernas. Peso corporal progresa por repes y sugiere lastre al
+  superar el rango.
 - Estancamiento (2 sesiones al mismo peso sin mejorar repes ni volumen):
-  SOLO avisa (eleccion suya), sugiriendo el deload del 10% como opcion.
+  SOLO avisa, sugiriendo el deload del 10% como opcion.
 """
 import os
 import uuid
@@ -84,11 +84,11 @@ class BodyWeightIn(BaseModel):
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
-# Salto minimo de peso por material (respuestas de Daniel sobre su gym)
+# Salto minimo de peso por material (tipico de un gimnasio comercial)
 EQUIPMENT_STEP = {"mancuernas": 2.5}
 DEFAULT_STEP = 1.0  # barra/maquina/polea: hay microdiscos, saltos de 1 kg
 LASTRE_STEP = 2.5  # lastre sugerido en ejercicios de peso corporal
-DEFAULT_SETS = 2  # Daniel hace 2 series de todo
+DEFAULT_SETS = 3
 DEFAULT_REPS_MIN = 6
 DEFAULT_REPS_MAX = 8
 

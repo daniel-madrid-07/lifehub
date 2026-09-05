@@ -45,5 +45,4 @@ class HabitLogOut(BaseModel):
     note: Optional[str] = None
 
 
-# (el perfil corporal no es configurable: los datos de Daniel viven
-#  hardcodeados en frontend/src/me.ts — la app es de un solo usuario)
+# (el perfil corporal vive en la tabla Profile y se sirve en /api/profile)

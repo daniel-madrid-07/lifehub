@@ -1,7 +1,7 @@
 """Canal unico de avisos. Por defecto van por Web Push (la app en el iPhone);
 configurable con NOTIFY_CHANNEL = push | telegram | both.
 
-Asi Daniel recibe todo SOLO en la app. Telegram queda como fallback de un
+Asi el usuario recibe todo SOLO en la app. Telegram queda como fallback de un
 flag por si el push fallara."""
 import re
 

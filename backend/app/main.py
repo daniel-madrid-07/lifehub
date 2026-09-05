@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     diet.seed_diet()
     seed.mark_seeded()  # a partir de aqui no se recrean los ejemplos borrados
     scheduler.add_job(check_reminders, "cron", minute="*")
-    # Precarga los datos de Epitech por la manana para que la pestana abra al instante
+    # Precarga los datos de estudios por la manana para que la pestana abra al instante
     scheduler.add_job(studies.prefetch, "cron", hour=8, minute=30)
     # Mensajes proactivos de Telegram
     scheduler.add_job(briefing.morning_briefing, "cron", hour=8, minute=0)

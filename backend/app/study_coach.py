@@ -1,14 +1,19 @@
-"""Coach de Estudios: la IA mira tu proyecto Epitech actual (repo de la org en
-GitHub) y, con el enunciado + deadline del intra y el contexto de como evalua
-Epitech, te dice que llevas hecho, que te falta y como vas de tiempo.
+"""Coach de Estudios: la IA mira el repo del proyecto en el que estas
+trabajando y te dice que llevas hecho, que te falta y como vas de tiempo.
 
-Acceso GitHub: token de tu cuenta de Epitech (daniel-madrid-07) en EPITECH_GH_TOKEN.
-Enunciado/deadline: via intra-bot (/project-metas), que casa cada repo con su
-proyecto del intra por modulo+instancia+slug y baja el enunciado si existe.
+Configuracion (.env), todo opcional — sin STUDIES_GH_ORG el modulo se apaga:
+  STUDIES_GH_TOKEN   token de GitHub con acceso a la organizacion
+  STUDIES_GH_ORG     organizacion donde estan los repos de tus proyectos
+  STUDIES_CONTEXT    como se evalua en tu centro (norma, tests, defensa...).
+                     Se le pasa a la IA como contexto.
+  STUDIES_REPO_RE    regex opcional para sacar (codigo, instancia, slug) del
+                     nombre del repo, si tu centro los nombra con un patron.
 
-Eleccion del proyecto: entre tus repos recientes, el que tiene el deadline
-futuro mas cercano (el que de verdad corre prisa). Si ninguno tiene proyecto
-activo (vacaciones), el repo con push mas reciente.
+Enunciado y deadline: opcionalmente via una API propia (INTRA_API_URL), para
+centros que expongan esos datos. Sin ella, el coach trabaja solo con el repo.
+
+Eleccion del proyecto: el de deadline futuro mas cercano; si no hay ninguno,
+el repo con push mas reciente.
 
 Bajo demanda y cacheado (no gasta de mas).
 """
@@ -23,18 +28,29 @@ from . import ai, config
 
 GH = "https://api.github.com"
 
-EPITECH_CONTEXT = (
-    "Epitech (Programme Grande Ecole, primer ano / Tek1-Tek2, campus Madrid, "
-    "instancia BAR). Pedagogia por proyectos, sin clases magistrales: se aprende "
-    "haciendo. Cada proyecto se corrige con la Moulinette (tests automaticos) y a "
-    "veces soutenance (defensa oral). Hay una NORMA de estilo estricta que la "
-    "Moulinette penaliza (cabeceras, nombres, funciones cortas, sin variables "
-    "globales, etc.). Se entrega via repo de la organizacion de GitHub; cuenta lo "
-    "que esta en la rama por defecto antes del deadline. Suele exigirse Makefile "
-    "(all, clean, fclean, re), gestion de errores y, en proyectos grandes, tests."
+# Contexto academico por defecto. Cada centro corrige distinto, asi que esto
+# se sobreescribe con STUDIES_CONTEXT en el .env.
+DEFAULT_CONTEXT = (
+    "Estudios tecnicos por proyectos: se entrega via repositorio de GitHub y "
+    "cuenta lo que este en la rama por defecto antes del deadline. Se valora "
+    "que compile/ejecute sin errores, la gestion de casos limite, un README "
+    "claro y, si el proyecto lo pide, tests."
 )
 
-_REPO_RE = re.compile(r"^(G-[A-Z]+-\d+)-([A-Z]{2,4}-\d+-\d+)-(.+)-\d+$")
+
+def _context(env) -> str:
+    return env.get("STUDIES_CONTEXT") or DEFAULT_CONTEXT
+
+
+def _repo_pattern(env):
+    """Regex para (codigo, instancia, slug) si el centro nombra asi los repos."""
+    raw = env.get("STUDIES_REPO_RE")
+    if not raw:
+        return None
+    try:
+        return re.compile(raw)
+    except re.error:
+        return None
 
 
 def _env():
@@ -45,7 +61,7 @@ def _env():
 
 def _gh_headers(env):
     h = {"Accept": "application/vnd.github+json"}
-    tok = env.get("EPITECH_GH_TOKEN")
+    tok = env.get("STUDIES_GH_TOKEN")
     if tok:
         h["Authorization"] = f"Bearer {tok}"
     return h
@@ -60,17 +76,21 @@ def _gh(path: str, env):
 
 
 def list_repos(env) -> list[dict]:
-    org = env.get("EPITECH_ORG")
+    org = env.get("STUDIES_GH_ORG")
     if not org:
         return []
     data = _gh(f"/orgs/{org}/repos?per_page=100&sort=pushed&direction=desc", env)
     return data if isinstance(data, list) else []
 
 
-def _parse_repo(name: str):
-    """G-WEB-200-BAR-2-1-epytodo-5 -> (code, instance, slug)."""
-    m = _REPO_RE.match(name)
-    return (m.group(1), m.group(2), m.group(3)) if m else None
+def _parse_repo(name: str, env=None):
+    """Saca (codigo, instancia, slug) del nombre del repo, si hay patron
+    configurado. Sin patron no se puede casar con el intra: devuelve None."""
+    pattern = _repo_pattern(env if env is not None else _env())
+    if pattern is None:
+        return None
+    m = pattern.match(name)
+    return m.groups()[:3] if m and len(m.groups()) >= 3 else None
 
 
 # ── Intra (deadline + enunciado) ────────────────────────────────────────────
@@ -163,7 +183,7 @@ _MAX_DUMP = 14000
 
 
 def _repo_dump(repo: dict, env) -> str:
-    org = env.get("EPITECH_ORG")
+    org = env.get("STUDIES_GH_ORG")
     name = repo["name"]
     branch = repo.get("default_branch", "main")
     tree = _gh(f"/repos/{org}/{name}/git/trees/{branch}?recursive=1", env)
@@ -206,7 +226,7 @@ def _repo_dump(repo: dict, env) -> str:
 
 def coach() -> str | None:
     env = _env()
-    if not env.get("EPITECH_GH_TOKEN") or not env.get("EPITECH_ORG"):
+    if not env.get("STUDIES_GH_TOKEN") or not env.get("STUDIES_GH_ORG"):
         return None
 
     meta, repo = _pick(env)
@@ -226,8 +246,8 @@ def coach() -> str | None:
         title = base
         recup = (
             f"OJO: esto es una recuperacion (Back To The Future) del proyecto '{base}'. "
-            f"Se corrige con los MISMOS requisitos que el proyecto original '{base}' de Epitech "
-            "(que conoces). No es un proyecto nuevo: es rehacer/terminar ese.\n\n"
+            f"Se corrige con los MISMOS requisitos que el proyecto original '{base}'. "
+            "No es un proyecto nuevo: es rehacer/terminar ese.\n\n"
         )
 
     if meta and meta.get("deadline"):
@@ -240,13 +260,13 @@ def coach() -> str | None:
     subj_section = (
         f"Enunciado del proyecto (del intra):\n{subject}\n\n"
         if subject.strip()
-        else "Enunciado: no disponible en el intra para este proyecto; deducelo por el "
-        "codigo, el nombre del repo y el tipo de proyecto Epitech.\n\n"
+        else "Enunciado: no disponible; deducelo por el codigo, el nombre del repo y "
+        "el tipo de proyecto.\n\n"
     )
 
     dump = _repo_dump(repo, env)
     prompt = (
-        f"Eres el mentor de Daniel en Epitech. {EPITECH_CONTEXT}\n\n"
+        f"Eres el mentor del usuario en sus estudios. {_context(env)}\n\n"
         f"Proyecto: {title} (repo {repo['name']}). {when}. Ultimo push: {pushed}.\n\n"
         f"{recup}"
         f"{subj_section}"
@@ -254,8 +274,8 @@ def coach() -> str | None:
         "Analiza en espanol, directo, sin emojis ni saludos. Hablale de TU (tu/te/tus), como si se "
         "lo dijeras a el; NUNCA en tercera persona ni digas su nombre. Maximo 8 lineas, en este orden:\n"
         "1) Que tiene hecho ya (concreto).\n"
-        "2) Que le falta para cumplir el proyecto (segun el enunciado si lo hay, o la norma y los "
-        "requisitos tipicos de este tipo de proyecto en Epitech).\n"
+        "2) Que le falta para cumplir el proyecto (segun el enunciado si lo hay, o los "
+        "requisitos tipicos de este tipo de proyecto).\n"
         "3) Como va de tiempo (si hay deadline).\n"
         "4) El siguiente paso concreto a hacer ahora."
     )
