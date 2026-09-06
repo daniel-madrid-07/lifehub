@@ -69,7 +69,7 @@ def _google_status() -> dict:
     }
 
 
-def _epitech_status() -> dict:
+def _intra_status() -> dict:
     """Estado de la sesion del intra. Rapido y fiable: se basa en la caducidad
     de la cookie persistente (no en una llamada lenta que podria dar falsos
     negativos por timeout). La cookie marca la vida maxima de la sesion."""
@@ -97,7 +97,7 @@ def _epitech_status() -> dict:
 
 
 def status() -> dict:
-    return {"google": _google_status(), "epitech": _epitech_status()}
+    return {"google": _google_status(), "intra": _intra_status()}
 
 
 def _flow() -> Flow:

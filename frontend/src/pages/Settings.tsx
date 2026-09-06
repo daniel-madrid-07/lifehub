@@ -159,7 +159,7 @@ function ConexionesSection() {
             <div className="flex items-center justify-between gap-3 mb-1">
               <span className="font-medium">Estudios · intra</span>
               {(() => {
-                const ep = data.epitech
+                const ep = data.intra
                 const d = ep.days_left
                 if (!ep.connected)
                   return <span className="text-sm font-semibold text-danger">Sesión caducada</span>
@@ -174,7 +174,7 @@ function ConexionesSection() {
               })()}
             </div>
             <p className="text-muted text-sm leading-relaxed">
-              {data.epitech.connected
+              {data.intra.connected
                 ? "Estudios y el coach funcionan. Renovar la sesión necesita login de Microsoft + 2FA en el ordenador; pídemelo y lo hacemos en un momento."
                 : "Sesión caída: hay que rehacer el login (Microsoft + 2FA). Dímelo y lo renovamos."}
             </p>

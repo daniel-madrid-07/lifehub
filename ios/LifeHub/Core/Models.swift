@@ -438,7 +438,7 @@ struct AuthStatus: Codable {
         let expires_at: String?
     }
     let google: Google
-    let epitech: Intra
+    let intra: Intra
 }
 
 // ── Armario ──────────────────────────────────────────────────────────────────

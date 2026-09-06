@@ -303,7 +303,7 @@ MSFsc = MSF                           en caso contrario
 
 **Jet lag social** (Wittmann et al. 2006): `SJL = |MSF − MSW|`. La discrepancia entre tu reloj biológico y tu reloj social.
 
-**Dato que te concierne directamente:** Roenneberg et al. (2004, *Curr Biol*, "A marker for the end of adolescence") muestran que la lateralidad del cronotipo **alcanza su máximo poblacional alrededor de los 20 años** y luego se adelanta progresivamente. Con 18 años y un horario de Epitech, tu MSFsc es probablemente tardío y tu SJL alto. **El modelo no debe pelearse con eso — debe gestionarlo con luz** (§7.1).
+**Dato relevante:** Roenneberg et al. (2004, *Curr Biol*, "A marker for the end of adolescence") muestran que la lateralidad del cronotipo **alcanza su máximo poblacional alrededor de los 20 años** y luego se adelanta progresivamente. En un usuario joven con horario académico, el MSFsc suele ser tardío y el SJL alto. **El modelo no debe pelearse con eso — debe gestionarlo con luz** (§7.1).
 
 ### 3.2 Tu ventaja: detección de días libres desde la agenda
 

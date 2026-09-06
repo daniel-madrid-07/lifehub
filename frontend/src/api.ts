@@ -129,7 +129,7 @@ export const api = {
           production?: boolean
           connected: boolean
         }
-        epitech: { connected: boolean; days_left: number | null; expires_at: string | null }
+        intra: { connected: boolean; days_left: number | null; expires_at: string | null }
       }>("/auth/status"),
     googleUrl: () => request<{ url: string }>("/auth/google/url"),
   },

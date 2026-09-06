@@ -180,10 +180,10 @@ struct ConnectionsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     ConnectionRow(
                         name: "Estudios · intra",
-                        connected: status.epitech.connected,
-                        detail: status.epitech.days_left.map { "~\($0) días" }
+                        connected: status.intra.connected,
+                        detail: status.intra.days_left.map { "~\($0) días" }
                     )
-                    Text(status.epitech.connected
+                    Text(status.intra.connected
                          ? "Estudios y el coach funcionan."
                          : "Sesión caída: hay que rehacer el login (Microsoft + 2FA). Dímelo y lo renovamos.")
                         .font(Theme.dCaption)
