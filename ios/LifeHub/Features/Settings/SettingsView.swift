@@ -8,6 +8,8 @@ struct SettingsView: View {
                 .font(Theme.dSubheadline)
                 .foregroundStyle(Theme.muted)
 
+            SettingsLink(icon: "person.crop.circle", title: "Tu perfil",
+                         hint: "Altura, objetivo, material del gimnasio") { ProfileSettingsView() }
             SettingsLink(icon: "square.grid.2x2", title: "Barra de navegación",
                          hint: "Elige qué apps van en la barra inferior") { NavbarSettingsView() }
             SettingsLink(icon: "dumbbell", title: "Rutinas de gym",
@@ -16,6 +18,8 @@ struct SettingsView: View {
                          hint: "Crear, editar o pausar tus rutinas diarias") { HabitManagerView() }
             SettingsLink(icon: "cart", title: "Lista de la compra",
                          hint: "Añadir o quitar productos") { ShoppingScreen() }
+            SettingsLink(icon: "applewatch", title: "Reloj",
+                         hint: "Enviar la configuración al Apple Watch") { WatchPairingView() }
             SettingsLink(icon: "envelope", title: "Conexiones",
                          hint: "Token de Google y sesión del intra") { ConnectionsView() }
         }

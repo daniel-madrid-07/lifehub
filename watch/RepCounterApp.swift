@@ -4,20 +4,18 @@ import WatchKit
 @main
 struct RepCounterApp: App {
     @StateObject private var store = Store()
+
+    init() {
+        // Escucha la configuración que manda el iPhone.
+        WatchConfigReceiver.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             MainTabView()
                 .environmentObject(store)
                 .background(Theme.bg)
         }
-    }
-}
-
-// Temporada del plan de gym: en verano (jun–sep) se usa Front Day / Back Day.
-enum WatchSeason {
-    static let summerNames: Set<String> = ["Front Day", "Back Day"]
-    static var isSummer: Bool {
-        (6...9).contains(Calendar.current.component(.month, from: .now))
     }
 }
 
@@ -32,6 +30,7 @@ struct MainTabView: View {
             HabitListView(title: "Rutinas", kind: .routine).tag(1)
             HabitListView(title: "Comida", kind: .food).tag(2)
             SleepAlarmView().tag(3)
+            WatchSettingsView().tag(4)
         }
         .tabViewStyle(.verticalPage)
     }
@@ -223,10 +222,8 @@ struct RoutinePickerView: View {
                     .multilineTextAlignment(.center)
                     .padding()
             } else {
-                // Solo la temporada actual (en verano: Front Day / Back Day).
-                let visible = routines.filter { WatchSeason.summerNames.contains($0.name) == WatchSeason.isSummer }
                 List {
-                    ForEach(visible) { r in routineButton(r) }
+                    ForEach(routines) { r in routineButton(r) }
                 }
             }
         }

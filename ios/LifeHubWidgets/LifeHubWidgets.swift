@@ -215,7 +215,7 @@ struct WorkoutProvider: TimelineProvider {
         async let r = try? API.shared.gymRoutines()
         async let w = try? API.shared.gymWorkouts()
         let routines = (await r) ?? []
-        let name = Season.isSummer ? Season.todaySummerRoutine : routines.first { $0.today == true }?.name
+        let name = routines.first { $0.today == true }?.name
         let count = routines.first { $0.name == name }?.exercises.count ?? 0
         let workouts = ((await w) ?? []).sorted { $0.started_at > $1.started_at }
         var delta: Double?
