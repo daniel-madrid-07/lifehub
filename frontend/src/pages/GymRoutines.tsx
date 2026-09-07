@@ -2,17 +2,20 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { api } from "../api"
 import { useLoad } from "../hooks"
-import type { GymExercise, GymRoutine, GymRoutineExercise } from "../types"
+import type { GymExercise, GymRoutine, GymRoutineExercise, RoutineTemplate } from "../types"
 import { PencilIcon, PlusIcon, TrashIcon, XIcon } from "../components/icons"
 import { haptic } from "../haptics"
 import ExercisePicker from "../components/ExercisePicker"
 import { EmptyState, ErrorCard, PageHeader, SkeletonList } from "../components/ui"
 
+const WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
 export default function GymRoutines() {
   const { data: routines, error, reload } = useLoad(api.gym.routines)
-  const { data: modeData, reload: reloadMode } = useLoad(api.gym.routineMode)
+  const { data: daysData, reload: reloadDays } = useLoad(api.gym.routineDays)
   const [editing, setEditing] = useState<GymRoutine | null>(null)
   const [creating, setCreating] = useState(false)
+  const [templates, setTemplates] = useState<RoutineTemplate[] | null>(null)
 
   if (error) return <ErrorCard detail={error} onRetry={reload} />
   if (!routines) return <SkeletonList rows={3} tall />
@@ -22,13 +25,24 @@ export default function GymRoutines() {
     reload()
   }
 
-  const mode = modeData?.mode ?? "normal"
-  const switchMode = async (m: string) => {
-    if (m === mode) return
+  const days = daysData?.days ?? {}
+  const assign = async (weekday: number, routineId: number | null) => {
     haptic("medium")
-    await api.gym.setRoutineMode(m)
-    reloadMode()
+    await api.gym.setRoutineDay(weekday, routineId)
+    reloadDays()
     reload() // recalcula qué rutina toca hoy
+  }
+
+  const openTemplates = async () => {
+    haptic("medium")
+    setTemplates(await api.routineTemplates.list())
+  }
+
+  const applyTemplate = async (id: string) => {
+    await api.routineTemplates.apply(id)
+    setTemplates(null)
+    reload()
+    reloadDays()
   }
 
   return (
@@ -48,26 +62,57 @@ export default function GymRoutines() {
       />
 
       <div className="mb-5">
-        <div className="text-muted text-xs uppercase tracking-[0.15em] mb-2">Plan activo</div>
-        <div className="flex p-1 rounded-full bg-surface border border-line text-sm">
-          {([["normal", "Normal"], ["summer", "Verano"]] as const).map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => switchMode(id)}
-              className={`flex-1 py-2 rounded-full font-medium transition-colors ${
-                mode === id ? "bg-surface-2 text-accent border border-line" : "text-muted"
-              }`}
-            >
-              {label}
-            </button>
+        <div className="text-muted text-xs uppercase tracking-[0.15em] mb-2">Tu semana</div>
+        <div className="rounded-2xl border border-line bg-surface/50 divide-y divide-line">
+          {WEEKDAYS.map((label, i) => (
+            <div key={label} className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-sm">{label}</span>
+              <select
+                value={routines.find((r) => r.name === days[String(i)])?.id ?? ""}
+                onChange={(e) => assign(i, e.target.value ? Number(e.target.value) : null)}
+                className="bg-transparent text-sm text-right outline-none max-w-[60%]"
+              >
+                <option value="">Descanso</option>
+                {routines.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           ))}
         </div>
-        <p className="text-muted text-sm mt-2 leading-relaxed">
-          {mode === "summer"
-            ? "Verano: Front Day (martes) y Back Day (viernes), 1 serie de todo."
-            : "Tu split normal de 5 días."}
-        </p>
+        <button
+          onClick={openTemplates}
+          className="mt-3 w-full py-2.5 rounded-full border border-line text-sm font-medium active:scale-95 transition-transform"
+        >
+          Usar una plantilla
+        </button>
       </div>
+
+      {templates && (
+        <div className="mb-5 rounded-2xl border border-line bg-surface/50 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-muted text-xs uppercase tracking-[0.15em]">Plantillas</div>
+            <button onClick={() => setTemplates(null)} aria-label="Cerrar" className="text-muted">
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => applyTemplate(t.id)}
+                className="w-full text-left px-3 py-3 rounded-xl border border-line active:scale-[0.98] transition-transform"
+              >
+                <div className="font-medium">{t.name}</div>
+                <div className="text-muted text-sm mt-0.5">{t.description}</div>
+                <div className="text-muted/70 text-xs mt-1">{t.routines.join(" · ")}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {routines.length === 0 && (
         <EmptyState
@@ -76,16 +121,11 @@ export default function GymRoutines() {
         />
       )}
 
-      {(["normal", "verano"] as const).map((group) => {
-        const group_routines = routines.filter((r) => (r.group ?? "normal") === group)
-        if (group_routines.length === 0) return null
-        return (
-          <div key={group} className="mb-6">
-            <div className="text-muted text-xs uppercase tracking-[0.15em] mb-2">
-              {group === "normal" ? "Normal" : "Verano"}
-            </div>
+      {routines.length > 0 && (
+          <div className="mb-6">
+            <div className="text-muted text-xs uppercase tracking-[0.15em] mb-2">Rutinas</div>
             <div className="space-y-2">
-              {group_routines.map((r) => (
+              {routines.map((r) => (
                 <div key={r.id} className="px-4 py-4 rounded-2xl border border-line bg-surface/50">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -113,8 +153,7 @@ export default function GymRoutines() {
               ))}
             </div>
           </div>
-        )
-      })}
+      )}
 
       <RoutineSheet
         open={creating || editing !== null}

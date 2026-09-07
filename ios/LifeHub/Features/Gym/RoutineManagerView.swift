@@ -1,14 +1,17 @@
 import SwiftUI
 
-/// Gestión de rutinas de gym — espejo de GymRoutines.tsx.
-/// Plan activo (Normal/Verano), listado por grupo, crear/editar/borrar.
+/// Gestión de rutinas de gym: qué toca cada día, plantillas y edición.
 struct RoutineManagerView: View {
     @State private var routines: [GymRoutine] = []
-    @State private var mode = "normal"
+    @State private var days: [String: String] = [:]   // weekday -> nombre de rutina
     @State private var error: String?
     @State private var loaded = false
     @State private var editing: GymRoutine?
     @State private var creating = false
+    @State private var showTemplates = false
+
+    private let weekdayNames = ["Lunes", "Martes", "Miércoles", "Jueves",
+                                "Viernes", "Sábado", "Domingo"]
 
     var body: some View {
         Screen(title: "Rutinas de gym", refresh: { await load() }) {
@@ -17,25 +20,45 @@ struct RoutineManagerView: View {
             } else if !loaded {
                 SkeletonList()
             } else {
-                // Plan activo (recalcula qué toca hoy)
-                SectionHeader(title: "Plan activo")
-                Picker("", selection: $mode) {
-                    Text("Normal").tag("normal")
-                    Text("Verano").tag("summer")
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: mode) { _, m in
-                    Haptics.selection()
-                    Task {
-                        _ = try? await API.shared.gymSetRoutineMode(m)
-                        await load()
+                // Qué rutina toca cada día de la semana
+                SectionHeader(title: "Tu semana")
+                ForEach(Array(weekdayNames.enumerated()), id: \.offset) { index, label in
+                    HStack {
+                        Text(label)
+                            .font(Theme.dSubheadline)
+                            .foregroundStyle(Theme.ink)
+                        Spacer()
+                        Menu {
+                            Button("Descanso") { Task { await assign(weekday: index, routine: nil) } }
+                            ForEach(routines) { r in
+                                Button(r.name) { Task { await assign(weekday: index, routine: r.id) } }
+                            }
+                        } label: {
+                            Text(days[String(index)] ?? "Descanso")
+                                .font(Theme.dCaption)
+                                .foregroundStyle(days[String(index)] == nil ? Theme.muted : Theme.accent)
+                        }
                     }
+                    .padding(.vertical, 2)
                 }
-                Text(mode == "summer"
-                     ? "Verano: Front Day (martes) y Back Day (viernes), 1 serie de todo."
-                     : "Tu split normal de 5 días.")
-                    .font(Theme.dCaption)
-                    .foregroundStyle(Theme.muted)
+
+                if routines.isEmpty {
+                    Text("Aún no tienes rutinas. Empieza por una plantilla y edítala a tu gusto.")
+                        .font(Theme.dCaption)
+                        .foregroundStyle(Theme.muted)
+                        .padding(.top, 4)
+                }
+
+                HButton(haptic: Haptics.medium) {
+                    showTemplates = true
+                } label: {
+                    Label("Usar una plantilla", systemImage: "square.stack.3d.up")
+                        .font(Theme.dHeadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
+                .actionGlass()
+                .padding(.top, 4)
 
                 HButton(haptic: Haptics.medium) {
                     creating = true
@@ -46,25 +69,21 @@ struct RoutineManagerView: View {
                         .padding(.vertical, 6)
                 }
                 .actionGlass()
-                .padding(.top, 4)
 
-                ForEach(["normal", "verano"], id: \.self) { group in
-                    let list = routines.filter { ($0.group ?? "normal") == group }
-                    if !list.isEmpty {
-                        SectionHeader(title: group == "normal" ? "Normal" : "Verano")
-                        ForEach(list) { r in
-                            RoutineManagerCard(
-                                routine: r,
-                                onEdit: { Haptics.light(); editing = r },
-                                onDelete: {
-                                    Task {
-                                        _ = try? await API.shared.gymDeleteRoutine(r.id)
-                                        Haptics.warning()
-                                        await load()
-                                    }
+                if !routines.isEmpty {
+                    SectionHeader(title: "Rutinas")
+                    ForEach(routines) { r in
+                        RoutineManagerCard(
+                            routine: r,
+                            onEdit: { Haptics.light(); editing = r },
+                            onDelete: {
+                                Task {
+                                    _ = try? await API.shared.gymDeleteRoutine(r.id)
+                                    Haptics.warning()
+                                    await load()
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
             }
@@ -72,6 +91,9 @@ struct RoutineManagerView: View {
         .task { await load() }
         .sheet(isPresented: $creating) {
             RoutineFormSheet(routine: nil) { await load() }
+        }
+        .sheet(isPresented: $showTemplates) {
+            RoutineTemplatesSheet { await load() }
         }
         .sheet(item: $editing) { r in
             RoutineFormSheet(routine: r) { await load() }
@@ -81,14 +103,20 @@ struct RoutineManagerView: View {
     func load() async {
         do {
             async let r = API.shared.gymRoutines()
-            async let m = try? API.shared.gymRoutineMode()
+            async let d = try? API.shared.gymRoutineDays()
             routines = try await r
-            if let mm = await m?.mode { mode = mm }
+            days = (await d)?.days ?? [:]
             error = nil
             loaded = true
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    func assign(weekday: Int, routine: Int?) async {
+        Haptics.selection()
+        _ = try? await API.shared.gymSetRoutineDay(weekday: weekday, routineId: routine)
+        await load()
     }
 }
 

@@ -83,12 +83,10 @@ export default function GymTrain() {
     }
   }
 
-  // La rutina de hoy primero y destacada; el resto separado por grupo
+  // La rutina de hoy primero y destacada; debajo, el resto
   const sorted = routines ? [...routines].sort((a, b) => Number(!!b.today) - Number(!!a.today)) : []
   const todayRoutine = sorted.find((r) => r.today)
   const rest = sorted.filter((r) => !r.today)
-  const restNormal = rest.filter((r) => r.group !== "verano")
-  const restVerano = rest.filter((r) => r.group === "verano")
 
   return (
     <div>
@@ -117,28 +115,14 @@ export default function GymTrain() {
             </div>
           )}
 
-          {(restNormal.length > 0 || restVerano.length > 0) && (
+          {rest.length > 0 && (
             <>
-              {restNormal.length > 0 && (
-                <>
-                  <div className="text-muted text-xs uppercase tracking-[0.2em] mt-6 mb-2">
-                    {todayRoutine ? "Normal" : "Rutinas · Normal"}
-                  </div>
-                  <div className="space-y-2">
-                    {restNormal.map((r) => <RoutineRow key={r.id} r={r} onStart={start} />)}
-                  </div>
-                </>
-              )}
-              {restVerano.length > 0 && (
-                <>
-                  <div className="text-muted text-xs uppercase tracking-[0.2em] mt-6 mb-2">
-                    Verano
-                  </div>
-                  <div className="space-y-2">
-                    {restVerano.map((r) => <RoutineRow key={r.id} r={r} onStart={start} />)}
-                  </div>
-                </>
-              )}
+              <div className="text-muted text-xs uppercase tracking-[0.2em] mt-6 mb-2">
+                {todayRoutine ? "Otras rutinas" : "Rutinas"}
+              </div>
+              <div className="space-y-2">
+                {rest.map((r) => <RoutineRow key={r.id} r={r} onStart={start} />)}
+              </div>
             </>
           )}
         </div>

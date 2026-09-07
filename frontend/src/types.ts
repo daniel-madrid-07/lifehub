@@ -114,7 +114,6 @@ export interface GymRoutine {
   id: number
   name: string
   today?: boolean
-  group?: "normal" | "verano"
   exercises: GymRoutineExercise[]
 }
 
@@ -343,4 +342,13 @@ export interface ProfileDTO {
   kcal_target: number
   protein_target: number
   configured: boolean
+}
+
+/** Plantilla de rutina que se puede aplicar de una vez. */
+export interface RoutineTemplate {
+  id: string
+  name: string
+  description: string
+  days_per_week: number
+  routines: string[]
 }

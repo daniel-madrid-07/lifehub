@@ -20,6 +20,7 @@ import type {
   NoteItem,
   PortfolioOverview,
   ProfileDTO,
+  RoutineTemplate,
   ProgressPhotoItem,
   ShopItem,
   StudyOverview,
@@ -143,9 +144,12 @@ export const api = {
         `/gym/exercises/${exerciseId}/recommendation?reps_min=${repsMin}&reps_max=${repsMax}`,
       ),
     routines: () => request<GymRoutine[]>("/gym/routines"),
-    routineMode: () => request<{ mode: string }>("/gym/routine-mode"),
-    setRoutineMode: (mode: string) =>
-      request<{ mode: string }>("/gym/routine-mode", { method: "POST", body: JSON.stringify({ mode }) }),
+    routineDays: () => request<{ days: Record<string, string> }>("/gym/routine-days"),
+    setRoutineDay: (weekday: number, routine_id: number | null) =>
+      request<{ days: Record<string, string> }>("/gym/routine-days", {
+        method: "POST",
+        body: JSON.stringify({ weekday, routine_id }),
+      }),
     createRoutine: (data: object) =>
       request<GymRoutine>("/gym/routines", { method: "POST", body: JSON.stringify(data) }),
     updateRoutine: (id: number, data: object) =>
@@ -219,6 +223,15 @@ export const api = {
     create: (text: string) =>
       request<NoteItem>("/notes", { method: "POST", body: JSON.stringify({ text }) }),
     remove: (id: number) => request<{ status: string }>(`/notes/${id}`, { method: "DELETE" }),
+  },
+
+  routineTemplates: {
+    list: () => request<RoutineTemplate[]>("/routine-templates"),
+    apply: (id: string, sets?: number) =>
+      request<{ status: string; created: string[]; skipped: number }>(
+        `/routine-templates/${id}/apply${sets ? `?sets=${sets}` : ""}`,
+        { method: "POST" },
+      ),
   },
 
   profile: {

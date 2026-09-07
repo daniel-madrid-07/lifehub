@@ -162,8 +162,23 @@ struct GymRoutine: Codable, Identifiable, Hashable {
     let exercises: [GymRoutineExercise]
 }
 
-struct RoutineModeResponse: Codable {
-    let mode: String     // "normal" | "summer"
+struct RoutineDaysResponse: Codable {
+    /// weekday ("0"=lunes ... "6"=domingo) -> nombre de la rutina
+    let days: [String: String]
+}
+
+struct RoutineTemplate: Codable, Identifiable {
+    let id: String
+    let name: String
+    let description: String
+    let days_per_week: Int
+    let routines: [String]
+}
+
+struct ApplyTemplateResponse: Codable {
+    let status: String
+    let created: [String]
+    let skipped: Int
 }
 
 struct GymSet: Codable, Identifiable, Hashable {

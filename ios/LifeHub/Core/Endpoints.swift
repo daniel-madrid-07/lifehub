@@ -90,9 +90,19 @@ extension API {
         try await request("/gym/exercises/\(exerciseId)/recommendation?reps_min=\(repsMin)&reps_max=\(repsMax)")
     }
     func gymRoutines() async throws -> [GymRoutine] { try await request("/gym/routines") }
-    func gymRoutineMode() async throws -> RoutineModeResponse { try await request("/gym/routine-mode") }
-    func gymSetRoutineMode(_ mode: String) async throws -> RoutineModeResponse {
-        try await request("/gym/routine-mode", method: "POST", body: JSONValue.object(["mode": .string(mode)]))
+    func gymRoutineDays() async throws -> RoutineDaysResponse { try await request("/gym/routine-days") }
+    func gymSetRoutineDay(weekday: Int, routineId: Int?) async throws -> RoutineDaysResponse {
+        try await request("/gym/routine-days", method: "POST", body: JSONValue.object([
+            "weekday": .int(weekday),
+            "routine_id": routineId.map { .int($0) } ?? .null,
+        ]))
+    }
+
+    // ── Plantillas de rutina ─────────────────────────────────────────────────
+    func routineTemplates() async throws -> [RoutineTemplate] { try await request("/routine-templates") }
+    func applyRoutineTemplate(_ id: String, sets: Int?) async throws -> ApplyTemplateResponse {
+        let query = sets.map { "?sets=\($0)" } ?? ""
+        return try await request("/routine-templates/\(id)/apply\(query)", method: "POST")
     }
     func gymCreateRoutine(name: String, exercises: [JSONValue]) async throws -> GymRoutine {
         try await request("/gym/routines", method: "POST", body: JSONValue.object([
