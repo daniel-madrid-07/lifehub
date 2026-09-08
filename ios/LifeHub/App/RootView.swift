@@ -44,7 +44,9 @@ enum NavModule: String, CaseIterable, Identifiable {
 /// Navegación principal: 4 huecos configurables + "Hoy" fija en el centro.
 /// La app abre en "Hoy". Los huecos se eligen en Ajustes → Barra de navegación.
 struct RootView: View {
-    @AppStorage("nav_slots") private var slotsRaw = "gym,nutrition,finance,studies"
+    // Por defecto, modulos que funcionan sin servidor. Correo, agenda,
+    // finanzas y estudios se pueden anadir desde Ajustes al conectar backend.
+    @AppStorage("nav_slots") private var slotsRaw = "gym,nutrition,routines,tasks"
     @State private var tab = "home"
 
     static let defaultSlots: [NavModule] = [.gym, .nutrition, .finance, .studies]

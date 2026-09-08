@@ -44,13 +44,35 @@ final class LocalStore {
         try? raw.write(to: fileURL, options: .atomic)
     }
 
-    /// Catálogo de ejercicios la primera vez, para que Gym no salga vacío.
+    /// Contenido inicial para que la app no arranque vacía: el catálogo de
+    /// ejercicios y unos hábitos de ejemplo, todos borrables.
     private func seedIfEmpty() {
-        guard data.exercises.isEmpty else { return }
-        data.exercises = ExerciseCatalog.all.enumerated().map { index, item in
-            LocalExercise(id: index + 1, name: item.0, muscle: item.1, equipment: item.2)
+        var changed = false
+
+        if data.exercises.isEmpty {
+            data.exercises = ExerciseCatalog.all.enumerated().map { index, item in
+                LocalExercise(id: index + 1, name: item.0, muscle: item.1, equipment: item.2)
+            }
+            changed = true
         }
-        persist()
+
+        if data.habits.isEmpty {
+            let examples: [(String, String, [String])] = [
+                ("Agua", "water", ["09:00", "12:00", "15:00", "18:00", "21:00"]),
+                ("Desayuno", "diet", ["08:00"]),
+                ("Comida", "diet", ["14:00"]),
+                ("Cena", "diet", ["21:00"]),
+                ("Entrenar", "exercise", ["18:00"]),
+                ("Rutina de dormir", "sleep", ["23:00"]),
+            ]
+            data.habits = examples.enumerated().map { index, item in
+                LocalHabit(id: index + 1, name: item.0, category: item.1,
+                           scheduleType: "daily_times", times: item.2)
+            }
+            changed = true
+        }
+
+        if changed { persist() }
     }
 
     /// Acceso serializado al estado.

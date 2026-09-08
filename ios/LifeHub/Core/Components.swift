@@ -58,21 +58,32 @@ struct SkeletonList: View {
 struct ErrorCard: View {
     let detail: String
     let retry: () async -> Void
+
+    /// Un módulo que solo necesita servidor no es un fallo: se explica en vez
+    /// de ofrecer un "Reintentar" que nunca va a funcionar.
+    private var needsServer: Bool {
+        AppConfig.isLocalMode && detail.contains("servidor")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Algo falló")
+            Text(needsServer ? "Necesita un servidor" : "Algo falló")
                 .font(.display(20))
                 .foregroundStyle(Theme.ink)
-            Text(detail)
+            Text(needsServer
+                 ? "Este apartado consulta servicios externos (correo, agenda, banco…), así que hace falta un backend. Puedes conectarlo en Ajustes › Servidor."
+                 : detail)
                 .font(Theme.dFootnote)
                 .foregroundStyle(Theme.muted)
-                .lineLimit(4)
-            Button {
-                Task { await retry() }
-            } label: {
-                Text("Reintentar")
-                    .font(Theme.dSubheadline.weight(.semibold))
-                    .foregroundStyle(Theme.accent)
+                .lineLimit(needsServer ? 6 : 4)
+            if !needsServer {
+                Button {
+                    Task { await retry() }
+                } label: {
+                    Text("Reintentar")
+                        .font(Theme.dSubheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                }
             }
         }
         .card()
