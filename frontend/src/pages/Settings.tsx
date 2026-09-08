@@ -176,7 +176,7 @@ function ConexionesSection() {
             <p className="text-muted text-sm leading-relaxed">
               {data.intra.connected
                 ? "Estudios y el coach funcionan. Renovar la sesión necesita login de Microsoft + 2FA en el ordenador; pídemelo y lo hacemos en un momento."
-                : "Sesión caída: hay que rehacer el login (Microsoft + 2FA). Dímelo y lo renovamos."}
+                : "Sesión caída: hay que volver a iniciar sesión en el servidor."}
             </p>
           </div>
 

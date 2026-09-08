@@ -274,7 +274,7 @@ struct ExerciseCard: View {
         }
     }
 
-    /// Saltos de SU gym: 1 kg barra/máquina/polea (microdiscos), 2,5 kg mancuernas.
+    /// Saltos de peso: 1 kg barra/máquina/polea (microdiscos), 2,5 kg mancuernas.
     func stepFor(_ equipment: String) -> Double {
         equipment == "mancuernas" ? 2.5 : 1
     }

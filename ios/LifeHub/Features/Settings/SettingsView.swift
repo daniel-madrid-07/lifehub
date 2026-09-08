@@ -22,8 +22,10 @@ struct SettingsView: View {
                          hint: "Conectar un backend propio (opcional)") { ServerSettingsView() }
             SettingsLink(icon: "applewatch", title: "Reloj",
                          hint: "Enviar la configuración al Apple Watch") { WatchPairingView() }
-            SettingsLink(icon: "envelope", title: "Conexiones",
-                         hint: "Token de Google y sesión del intra") { ConnectionsView() }
+            if AppConfig.isConfigured {
+                SettingsLink(icon: "envelope", title: "Conexiones",
+                             hint: "Token de Google y sesión del intra") { ConnectionsView() }
+            }
         }
     }
 }
@@ -187,7 +189,7 @@ struct ConnectionsView: View {
                     )
                     Text(status.intra.connected
                          ? "Estudios y el coach funcionan."
-                         : "Sesión caída: hay que rehacer el login (Microsoft + 2FA). Dímelo y lo renovamos.")
+                         : "Sesión caída: hay que volver a iniciar sesión en el servidor.")
                         .font(Theme.dCaption)
                         .foregroundStyle(Theme.muted)
                 }
