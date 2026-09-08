@@ -3,11 +3,15 @@ import Foundation
 enum APIError: LocalizedError {
     case unauthorized
     case server(String)
+    /// Este módulo necesita un servidor conectado (correo, agenda, finanzas, IA).
+    case needsServer
 
     var errorDescription: String? {
         switch self {
         case .unauthorized: return "No autorizado"
         case .server(let detail): return detail
+        case .needsServer:
+            return "Este apartado necesita un servidor conectado. Puedes añadirlo en Ajustes."
         }
     }
 }
@@ -40,6 +44,16 @@ final class API {
         method: String = "GET",
         body: Encodable? = nil
     ) async throws -> T {
+        // Sin servidor configurado, la app se sirve a sí misma desde el
+        // almacén local: así funciona nada más instalarla.
+        if AppConfig.isLocalMode {
+            let payload = try body.map { try JSONEncoder().encode(AnyEncodable($0)) }
+            guard let data = LocalAPI.handle(path: path, method: method, body: payload) else {
+                throw APIError.needsServer
+            }
+            return try JSONDecoder().decode(T.self, from: data)
+        }
+
         var req = URLRequest(url: URL(string: baseURL + "/api" + path)!)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -65,6 +79,8 @@ final class API {
     }
 
     func upload<T: Decodable>(_ path: String, imageData: Data, filename: String) async throws -> T {
+        // Las fotos se guardan en el servidor: en modo local no hay dónde.
+        if AppConfig.isLocalMode { throw APIError.needsServer }
         var req = URLRequest(url: URL(string: baseURL + "/api" + path)!)
         req.httpMethod = "POST"
         let boundary = UUID().uuidString

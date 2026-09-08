@@ -42,8 +42,9 @@ targets:
         UILaunchScreen: {}
         CFBundleDisplayName: Life Hub
         NSAppTransportSecurity:
-          # El backend corre por HTTP plano (VPS :8011)
-          NSAllowsArbitraryLoads: true
+          # Permite HTTP solo en redes locales, por si alguien aloja el backend
+          # en su propia LAN. Fuera de ahi se exige HTTPS.
+          NSAllowsLocalNetworking: true
         NSPhotoLibraryUsageDescription: Para subir fotos de progreso al Gym.
         NSHealthShareUsageDescription: Para analizar tu sueño y constantes y recomendarte la hora de dormir.
         UIUserInterfaceStyle: Dark
@@ -66,11 +67,13 @@ targets:
     sources:
       - LifeHubWidgets
       - LifeHub/Core/APIClient.swift
+      - LifeHub/Core/AppConfig.swift
       - LifeHub/Core/Endpoints.swift
+      - LifeHub/Core/Keychain.swift
+      - LifeHub/Core/LocalStore.swift
       - LifeHub/Core/Models.swift
       - LifeHub/Core/Theme.swift
       - LifeHub/Core/Me.swift
-      - LifeHub/Core/Season.swift
       - LifeHub/Core/Components.swift
     settings:
       base:

@@ -18,6 +18,8 @@ struct SettingsView: View {
                          hint: "Crear, editar o pausar tus rutinas diarias") { HabitManagerView() }
             SettingsLink(icon: "cart", title: "Lista de la compra",
                          hint: "Añadir o quitar productos") { ShoppingScreen() }
+            SettingsLink(icon: "externaldrive.connected.to.line.below", title: "Servidor",
+                         hint: "Conectar un backend propio (opcional)") { ServerSettingsView() }
             SettingsLink(icon: "applewatch", title: "Reloj",
                          hint: "Enviar la configuración al Apple Watch") { WatchPairingView() }
             SettingsLink(icon: "envelope", title: "Conexiones",

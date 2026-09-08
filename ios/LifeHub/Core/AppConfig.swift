@@ -37,10 +37,14 @@ enum AppConfig {
         set { Keychain.write(tokenKey, value: newValue) }
     }
 
-    /// Hay servidor y clave: la app puede funcionar.
+    /// Hay servidor y clave: la app habla con el backend.
     static var isConfigured: Bool {
         !baseURL.isEmpty && !token.isEmpty
     }
+
+    /// Sin servidor: la app funciona sola, guardando los datos en el iPhone.
+    /// Es el modo por defecto nada más instalar.
+    static var isLocalMode: Bool { !isConfigured }
 
     /// Borra la configuración (cerrar sesión).
     static func reset() {
